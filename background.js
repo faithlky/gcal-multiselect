@@ -42,7 +42,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Message received in background script:', request); // Debugging statement
     
-    if (request.action === 'getEventDetails') {
+    if (request.action === "getEventDetails") {
         const eventId = request.eventId;
         console.log('Fetching event details for ID:', eventId);
 
@@ -89,5 +89,50 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
 
         return true; // Indicates an async response
+    }
+
+    
+    if (request.action === "updateEvent") {
+        const { eventId, newStartTime, newEndTime } = request;
+
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error getting auth token:', chrome.runtime.lastError);
+                sendResponse({ error: chrome.runtime.lastError.message });
+                return;
+            }
+
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
+            const eventPatch = {
+                start: {
+                    dateTime: newStartTime
+                },
+                end: {
+                    dateTime: newEndTime
+                }
+            };
+
+            fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(eventPatch)
+            })
+            .then(response => response.json())
+            .then(event => {
+                console.log("Event updated:", event);
+                sendResponse({ event });
+            })
+            .catch(error => {
+                console.error("Error updating event:", error);
+                sendResponse({ error: error.toString() });
+            });
+
+            return true;
+        });
+
+        return true;
     }
 });

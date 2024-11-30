@@ -3,6 +3,7 @@
     let listenersAdded = false;
     let selectedEvents = [];
     let initialEventTimes = {};
+    let observer = null;
     const calendarId = "a2eb75b2bf42cbd0d0b3eb1ee00463bd13ae5a1cba129cb7659b6e1b5dcfaf9c@group.calendar.google.com";
   
 
@@ -26,6 +27,10 @@
                 removeEventListeners();
                 selectedEvents = [];
                 initialEventTimes = {};
+                if (observer) {
+                    observer.disconnect();
+                    observer = null;
+                }
             }
         }
     });
@@ -34,7 +39,7 @@
     function addEventListeners() {
         if (!listenersAdded) {
             document.addEventListener("mousedown", handleMouseDown);
-            document.addEventListener("mouseup", handleMouseUp);
+            // document.addEventListener("mouseup", handleMouseUp);
             listenersAdded = true;
             console.log('Event listeners added'); // Debugging statement
         }
@@ -44,7 +49,7 @@
     function removeEventListeners() {
         if (listenersAdded) {
             document.removeEventListener("mousedown", handleMouseDown);
-            document.removeEventListener("mouseup", handleMouseUp);
+            // document.removeEventListener("mouseup", handleMouseUp);
             listenersAdded = false;
             console.log('Event listeners removed'); // Debugging statement
         }
@@ -60,45 +65,53 @@
     }
 
 
-    function handleMouseUp(e) {
-        if (!isExtensionActive || selectedEvents.length === 0) return;
-        const eventElement = e.target.closest("[role='button']");
-        if (!eventElement) return;
+    // function handleMouseUp(e) {
+    //     console.log("MOUSE UP EVENT DETECTED."); // Debugging statement
 
-        const eventId = fetchEventId(eventElement);
-        if (!eventId || !initialEventTimes[eventId]) return;
+    //     if (!isExtensionActive || selectedEvents.length === 0) return;
+    //     const eventElement = e.target.closest("[role='button']");
+    //     if (!eventElement) return;
 
-        console.log("Fetching event details for mouseUp on event:", eventId); // Debugging statement
+    //     const eventId = fetchEventId(eventElement);
+    //     if (!eventId || !initialEventTimes[eventId]) return;
 
-        fetchEventDetails(eventId).then(event => {
-            const currentStartTime = new Date(event.start.dateTime);
-            const initialStartTime = initialEventTimes[eventId].start;
-            console.log("Current start time:", currentStartTime);
-            console.log("Initial start time:", initialStartTime);
+    //     console.log("Fetching event details for mouseUp on event:", eventId); // Debugging statement
 
-            if (currentStartTime.getTime() !== initialStartTime.getTime()) {
-                const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
-                selectedEvents.forEach(({ id }) => {
-                    if (id !== eventId && initialEventTimes[id]) {
-                        const initialEventTime = initialEventTimes[id];
-                        if (!initialEventTime) return;
+    //     let currentStartTime = null;
+    //     let initialStartTime = initialEventTimes[eventId].start;
 
-                        const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
-                        const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
+    //     fetchEventDetails(eventId).then(event => {
+    //         currentStartTime = new Date(event.start.dateTime);
+    //         console.log("Current start time (fetched):", currentStartTime);
+    //     })
+    //     .then(() => {
+    //         console.log("Current start time:", currentStartTime);
+    //         console.log("Initial start time:", initialStartTime);
 
-                        updateEvent(id, newStartTime, newEndTime);
-                    }
-                });
+    //         if (currentStartTime.getTime() !== initialStartTime.getTime()) {
+    //             const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
+    //             selectedEvents.forEach(({ id }) => {
+    //                 if (id !== eventId && initialEventTimes[id]) {
+    //                     const initialEventTime = initialEventTimes[id];
+    //                     if (!initialEventTime) return;
 
-                console.log("Selected events:", selectedEvents);
-                console.log("Initial event times:", initialEventTimes);
-            } else {
-                console.log("No change in event start time detected. Not an event drag operation.");
-            }
-        }).catch(error => {
-            console.error("Error fetching event details:", error);
-        });
-    }
+    //                     const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
+    //                     const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
+
+    //                     updateEvent(id, newStartTime, newEndTime);
+    //                 }
+    //             });
+
+    //             console.log("Selected events:", selectedEvents);
+    //             console.log("Initial event times:", initialEventTimes);
+    //         } else {
+    //             console.log("No change in event start time detected. Not an event drag operation.");
+    //         }
+    //     })
+    //     .catch(error => {
+    //         console.error("Error fetching event details:", error);
+    //     });
+    // }
 
 
     function fetchEventId(element) {
@@ -132,7 +145,6 @@
 
     function fetchEventDetails(eventId) {
         return new Promise((resolve, reject) => {
-            console.log('Sending message to background script to fetch event details for ID:', eventId); // Debugging statement
             chrome.runtime.sendMessage({ action: 'getEventDetails', eventId }, (response) => {
                 if (response.error) {
                     console.error('Error fetching event details:', response.error);
@@ -182,38 +194,15 @@
     
 
     function updateEvent(eventId, newStartTime, newEndTime) {
-
-        chrome.identity.getAuthToken({ interactive: true }, (token) => {
-            if (chrome.runtime.lastError) {
-                console.error('Error getting auth token:', chrome.runtime.lastError);
-                return;
+        chrome.runtime.sendMessage({
+            action: "updateEvent",
+            eventId, 
+            newStartTime: newStartTime.toISOString(), 
+            newEndTime: newEndTime.toISOString()
+        }, (response) => {
+            if (response.error) {
+                console.error('Error updating event:', response.error);
             }
-
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
-            const eventPatch = {
-                start: {
-                    dateTime: newStartTime.toISOString()
-                },
-                end: {
-                    dateTime: newEndTime.toISOString()
-                }
-            };
-
-            fetch(url, {
-                method: 'PATCH',
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(eventPatch)
-            })
-            .then(response => response.json())
-            .then(event => {
-                console.log("Event updated:", event);
-            })
-            .catch(error => {
-                console.error("Error updating event:", error);
-            });
         });
     }
 
@@ -222,8 +211,41 @@
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                    // Reapply border style to all selected events when GCal rerenders the events after you click them
                     selectedEvents.forEach(({ element }) => {
                         element.style.border = "2px solid black";
+                    });
+
+                    // Check if any selected event has been moved
+                    selectedEvents.forEach(({ id }) => {
+                        const eventId = id;
+                        const initialStartTime = initialEventTimes[eventId].start;
+                        let currentStartTime = null;
+
+                        fetchEventDetails(eventId)
+                        .then(event => {
+                            currentStartTime = new Date(event.start.dateTime);
+                        })
+                        .then(() => {
+                            if (currentStartTime.getTime() !== initialStartTime.getTime()) {
+                                const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
+
+                                selectedEvents.forEach(({ id }) => {
+                                    if (id !== eventId && initialEventTimes[id]) {
+                                        const initialEventTime = initialEventTimes[id];
+                                        if (!initialEventTime) return;
+
+                                        const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
+                                        const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
+
+                                        updateEvent(id, newStartTime, newEndTime);
+                                    }
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching event details:", error);
+                        });
                     });
                 }
             });
