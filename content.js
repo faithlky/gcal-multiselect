@@ -1,11 +1,11 @@
 (function() {
+    const calendarId = "YOUR_CALENDAR_ID"; // probably your gmail address
     let isExtensionActive = false;
     let listenersAdded = false;
     let selectedEvents = [];
     let initialEventTimes = {};
     let observer = null;
-    const calendarId = "a2eb75b2bf42cbd0d0b3eb1ee00463bd13ae5a1cba129cb7659b6e1b5dcfaf9c@group.calendar.google.com";
-  
+
 
     chrome.runtime.onMessage.addListener((request) => {
 
