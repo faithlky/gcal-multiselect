@@ -57,11 +57,80 @@
 
 
     function handleMouseDown(e) {
-        if (!isExtensionActive || !e.ctrlKey) return;
-        const eventElement = e.target.closest("[role='button']");
-        if (eventElement) {
-            toggleSelection(eventElement);
+        if (!isExtensionActive) return;
+        if (e.ctrlKey) {
+            const eventElement = e.target.closest("[role='button']");
+            if (eventElement) {
+                toggleSelection(eventElement);
+            }
+        } else if (e.shiftKey) {
+            const eventElement = e.target.closest("[role='button']");
+            if (eventElement) {
+                toggleSelection(eventElement);
+
+                const sortedInitialEventTimesArray = sortInitialEventTimes();
+                if (sortedInitialEventTimesArray.length === 0) {
+                    return;
+                }
+
+                const latestSelectedEvent = sortedInitialEventTimesArray[sortedInitialEventTimesArray.length - 1];
+                const latestSelectedEventStartTime = latestSelectedEvent[1].start.toISOString();
+
+                const eventId = fetchEventId(eventElement);
+                fetchEventDetails(eventId).then(event => {
+                    const eventElementStartTime = new Date(event.start.dateTime).toISOString();
+    
+                    getEventsList(latestSelectedEventStartTime, eventElementStartTime).then(events => {
+                        const elements = document.querySelectorAll("[jslog]");
+
+                        events.forEach(event => {                            
+                            let eventElement = null;
+                            for (const element of elements) {
+                                const jslog = element.getAttribute("jslog");
+                                if (jslog && jslog.includes(event.id)) {
+                                    eventElement = element;
+                                }
+                            }
+                            if (eventElement) {
+                                const alreadySelected = selectedEvents.some(selectedEvent => selectedEvent.id === event.id);
+                                if (!alreadySelected) {
+                                    toggleSelection(eventElement);
+                                }
+                            }
+                        });
+                    }).catch(error => {
+                        console.error("Error fetching events list:", error);
+                    });
+                }).catch(error => {
+                    console.error("Error fetching event details:", error);
+                });
+            }
         }
+    }
+
+
+    function sortInitialEventTimes() {
+        const initialEventTimesArray = Object.entries(initialEventTimes);
+        const sortedArray = initialEventTimesArray.sort((a, b) => {
+            const startTimeA = a[1].start.getTime();
+            const startTimeB = b[1].start.getTime();
+            return startTimeA - startTimeB;
+        });
+        return sortedArray;
+    }
+
+    
+    function getEventsList(timeMin, timeMax) {
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ action: 'getEventsList', timeMin, timeMax }, (response) => {
+                if (response.error) {
+                    console.error('Error fetching events list:', response.error);
+                    reject(response.error);
+                } else {
+                    resolve(response.events);
+                }
+            });
+        });
     }
 
 
@@ -225,38 +294,6 @@
                     selectedEvents.forEach(({ element }) => {
                         element.style.border = "2px solid black";
                     });
-
-                    // // Check if any selected event has been moved
-                    // selectedEvents.forEach(({ id }) => {
-                    //     const eventId = id;
-                    //     const initialStartTime = initialEventTimes[eventId].start;
-                    //     let currentStartTime = null;
-
-                    //     fetchEventDetails(eventId)
-                    //     .then(event => {
-                    //         currentStartTime = new Date(event.start.dateTime);
-                    //     })
-                    //     .then(() => {
-                    //         if (currentStartTime.getTime() !== initialStartTime.getTime()) {
-                    //             const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
-
-                    //             selectedEvents.forEach(({ id }) => {
-                    //                 if (id !== eventId && initialEventTimes[id]) {
-                    //                     const initialEventTime = initialEventTimes[id];
-                    //                     if (!initialEventTime) return;
-
-                    //                     const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
-                    //                     const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
-
-                    //                     updateEvent(id, newStartTime, newEndTime);
-                    //                 }
-                    //             });
-                    //         }
-                    //     })
-                    //     .catch(error => {
-                    //         console.error("Error fetching event details:", error);
-                    //     });
-                    // });
                 }
             });
         });

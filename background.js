@@ -42,6 +42,50 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Message received in background script:', request); // Debugging statement
     
+    if (request.action === "getEventsList") {
+        const { timeMin, timeMax } = request;
+
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error getting auth token:', chrome.runtime.lastError);
+                sendResponse({ error: chrome.runtime.lastError.message });
+                return;
+            }
+
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+            })
+            .then(response => {
+                console.log('Fetch response status:', response.status);
+                if (!response.ok) {
+                    return response.json().then(error => {
+                        console.error('Error response from API:', error);
+                        throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Events in range:', data.items);
+                sendResponse({ events: data.items });
+            })
+            .catch(error => {
+                console.error('Error fetching events:', error);
+                sendResponse({ error: error.toString() });
+            });
+
+            return true;
+        });
+
+        return true;
+    }
+
     if (request.action === "getEventDetails") {
         const eventId = request.eventId;
         console.log('Fetching event details for ID:', eventId);
@@ -61,8 +105,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             fetch(url, {
                 method: 'GET',
                 headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
                 },
             })
             .then(response => {
@@ -72,7 +116,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         console.error('Error response from API:', error);
                         throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
                     });
-                    // throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
@@ -85,10 +128,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({ error: error.toString() });
             });
 
-            return true; // Indicates an async response
+            return true;
         });
 
-        return true; // Indicates an async response
+        return true;
     }
 
     
@@ -116,7 +159,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 method: 'PATCH',
                 headers: {
                     "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json",
+                    "Content-Type": "application/json"
                 },
                 body: JSON.stringify(eventPatch)
             })
