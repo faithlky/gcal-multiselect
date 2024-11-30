@@ -40,7 +40,6 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Message received in background script:', request); // Debugging statement
     
     if (request.action === "getEventsList") {
         const { timeMin, timeMax } = request;
@@ -62,7 +61,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 },
             })
             .then(response => {
-                console.log('Fetch response status:', response.status);
                 if (!response.ok) {
                     return response.json().then(error => {
                         console.error('Error response from API:', error);
@@ -72,7 +70,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return response.json();
             })
             .then(data => {
-                console.log('Events in range:', data.items);
                 sendResponse({ events: data.items });
             })
             .catch(error => {
@@ -88,7 +85,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "getEventDetails") {
         const eventId = request.eventId;
-        console.log('Fetching event details for ID:', eventId);
 
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
             if (chrome.runtime.lastError) {
@@ -97,11 +93,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return;
             }
 
-            console.log('Auth token acquired:', token);
-
             const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
-            console.log('Fetching event details:', url);
-
             fetch(url, {
                 method: 'GET',
                 headers: {
@@ -110,7 +102,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 },
             })
             .then(response => {
-                console.log('Fetch response status:', response.status);
                 if (!response.ok) {
                     return response.json().then(error => {
                         console.error('Error response from API:', error);
@@ -120,7 +111,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 return response.json();
             })
             .then(event => {
-                console.log('Event details:', event);
                 sendResponse({ event });
             })
             .catch(error => {
@@ -165,7 +155,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             })
             .then(response => response.json())
             .then(event => {
-                console.log("Event updated:", event);
                 sendResponse({ event });
             })
             .catch(error => {

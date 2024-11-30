@@ -8,7 +8,6 @@
   
 
     chrome.runtime.onMessage.addListener((request) => {
-        console.log("Message received in content.js:", request);
 
         if (request.action === "showAlert") {
             alert(request.message);
@@ -16,8 +15,6 @@
 
         if (request.action === "toggleExtensionState") {
             isExtensionActive = request.active;
-            console.log("Extension state updated, active:", isExtensionActive);
-
             if (isExtensionActive) {
                 if (!listenersAdded) {
                     addEventListeners();
@@ -41,7 +38,6 @@
             document.addEventListener("mousedown", handleMouseDown);
             document.addEventListener("keydown", handleKeyDown);
             listenersAdded = true;
-            console.log('Event listeners added'); // Debugging statement
         }
     }
 
@@ -51,7 +47,6 @@
             document.removeEventListener("mousedown", handleMouseDown);
             document.removeEventListener("keydown", handleKeyDown);
             listenersAdded = false;
-            console.log('Event listeners removed'); // Debugging statement
         }
     }
 
@@ -147,8 +142,6 @@
             .then(event => {
                 const initialStartTime = initialEventTimes[id].start;
                 const currentStartTime = new Date(event.start.dateTime);
-                console.log("Initial start time for", id, ":", initialStartTime);
-                console.log("Current start time for", id, ":", currentStartTime);
                 if (currentStartTime.getTime() !== initialStartTime.getTime()) {
                     differenceCount++;
                     const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
@@ -237,8 +230,6 @@
 
     function toggleSelection(element) {
         let eventId = fetchEventId(element);
-
-        console.log("Clicked event:", eventId); // Debugging statement
         
         fetchEventDetails(eventId).then(event => {
             if (!event.start.dateTime) {
@@ -261,9 +252,6 @@
                 element.style.border = "";
                 delete initialEventTimes[eventId];
             }
-
-            console.log("Selected events:", selectedEvents);
-            console.log("Initial event times:", initialEventTimes);
 
         }).catch(error => {
             console.error("Error fetching event details:", error);
