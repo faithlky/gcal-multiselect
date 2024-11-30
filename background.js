@@ -21,7 +21,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         if (nextState === 'ON') {
             chrome.tabs.sendMessage(tab.id, {
                 action: "showAlert", 
-                message: "Ctrl+Click to select non-All-Day events. Move one of them, then press Ctrl+Enter to move the rest."
+                message: `CTRL+CLICK to select individual (non "All day") events. If you have a block of back-to-back events you'd like to move, select the first event in the block, then SHIFT+CLICK the last event to select all the events in between as well. Move one of the selected events, then press CTRL+ENTER to move the rest.`
             });
 
             chrome.tabs.sendMessage(tab.id, { 
