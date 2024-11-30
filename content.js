@@ -1,5 +1,6 @@
 (function() {
     const calendarId = "YOUR_CALENDAR_ID"; // probably your gmail address
+
     let isExtensionActive = false;
     let listenersAdded = false;
     let selectedEvents = [];
@@ -117,9 +118,9 @@
     
     function getEventsList(timeMin, timeMax) {
         return new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ action: 'getEventsList', timeMin, timeMax }, (response) => {
+            chrome.runtime.sendMessage({ action: "getEventsList", timeMin, timeMax }, (response) => {
                 if (response.error) {
-                    console.error('Error fetching events list:', response.error);
+                    console.error("Error fetching events list:", response.error);
                     reject(response.error);
                 } else {
                     resolve(response.events);
@@ -186,6 +187,10 @@
 
 
     function fetchEventId(element) {
+        /* Note: This is how to get the event ID from the element! 
+        Not the data-eventid attribute, which I was misled by :( 
+        The data-eventid attribute is not the event ID, it's from the event's htmlLink */
+
         let jslog = element.getAttribute("jslog");
         if (!jslog) {
             console.log("No jslog found on the element. Likely a wrong element selected.");
@@ -216,9 +221,9 @@
 
     function fetchEventDetails(eventId) {
         return new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ action: 'getEventDetails', eventId }, (response) => {
+            chrome.runtime.sendMessage({ action: "getEventDetails", eventId }, (response) => {
                 if (response.error) {
-                    console.error('Error fetching event details:', response.error);
+                    console.error("Error fetching event details:", response.error);
                     reject(response.error);
                 } else {
                     resolve(response.event);
@@ -267,7 +272,7 @@
             newEndTime: newEndTime.toISOString()
         }, (response) => {
             if (response.error) {
-                console.error('Error updating event:', response.error);
+                console.error("Error updating event:", response.error);
             }
         });
         toggleSelection(selectedEvents.find(event => event.id === eventId).element);
@@ -277,7 +282,7 @@
     function observeDOMChanges() {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
-                if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                if (mutation.type === "childList" || mutation.type === "attributes") {
                     // Reapply border style to all selected events when GCal rerenders the events after you click them
                     selectedEvents.forEach(({ element }) => {
                         element.style.border = "2px solid black";

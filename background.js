@@ -46,7 +46,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
             if (chrome.runtime.lastError) {
-                console.error('Error getting auth token:', chrome.runtime.lastError);
+                console.error("Error getting auth token:", chrome.runtime.lastError);
                 sendResponse({ error: chrome.runtime.lastError.message });
                 return;
             }
@@ -54,7 +54,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
             
             fetch(url, {
-                method: 'GET',
+                method: "GET",
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
@@ -63,7 +63,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(error => {
-                        console.error('Error response from API:', error);
+                        console.error("Error response from API:", error);
                         throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
                     });
                 }
@@ -73,7 +73,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({ events: data.items });
             })
             .catch(error => {
-                console.error('Error fetching events:', error);
+                console.error("Error fetching events:", error);
                 sendResponse({ error: error.toString() });
             });
 
@@ -88,14 +88,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
             if (chrome.runtime.lastError) {
-                console.error('Error getting auth token:', chrome.runtime.lastError);
+                console.error("Error getting auth token:", chrome.runtime.lastError);
                 sendResponse({ error: chrome.runtime.lastError.message });
                 return;
             }
 
             const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
             fetch(url, {
-                method: 'GET',
+                method: "GET",
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
@@ -104,7 +104,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(error => {
-                        console.error('Error response from API:', error);
+                        console.error("Error response from API:", error);
                         throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
                     });
                 }
@@ -114,7 +114,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({ event });
             })
             .catch(error => {
-                console.error('Error fetching event details:', error);
+                console.error("Error fetching event details:", error);
                 sendResponse({ error: error.toString() });
             });
 
@@ -130,7 +130,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
             if (chrome.runtime.lastError) {
-                console.error('Error getting auth token:', chrome.runtime.lastError);
+                console.error("Error getting auth token:", chrome.runtime.lastError);
                 sendResponse({ error: chrome.runtime.lastError.message });
                 return;
             }
@@ -146,7 +146,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             };
 
             fetch(url, {
-                method: 'PATCH',
+                method: "PATCH",
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
