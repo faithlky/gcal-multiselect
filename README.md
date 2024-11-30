@@ -12,6 +12,7 @@ NOTE: Please tell me if you want to test this and I'll add your email to the tes
 5. Go to calendar.google.com and click the extension icon to turn it ON.
 6. Use Ctrl+Click to select individual (non "All day") events. If you have a block of back-to-back events you'd like to move, select the first event in the block, then Shift+Click the last event to select all the events in between as well.
 7. Move one of the selected events, then press **Ctrl+Enter** to move the rest.
+
 (Please be patient, it takes a while for the selection borders and event changes to appear.)
 
 ## Future improvements (maybe):
