@@ -1,20 +1,10 @@
-let accessToken = null;
+const calendarId = "a2eb75b2bf42cbd0d0b3eb1ee00463bd13ae5a1cba129cb7659b6e1b5dcfaf9c@group.calendar.google.com";
 
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.action.setBadgeText({
         text: "OFF",
     });
-});
-
-
-chrome.identity.getAuthToken({ interactive: true }, (token) => {
-    if (chrome.runtime.lastError) {
-        console.error('Error getting auth token on install:', chrome.runtime.lastError);
-        return;
-    }
-    console.log('Token acquired on install:', token);
-    accessToken = token;
 });
 
 
@@ -28,12 +18,7 @@ chrome.action.onClicked.addListener(async (tab) => {
             text: nextState 
         });
 
-        if (nextState === 'ON') {         
-            // await chrome.scripting.executeScript({
-            //     files: ["content.js"],
-            //     target: { tabId: tab.id },
-            // });
-
+        if (nextState === 'ON') {
             chrome.tabs.sendMessage(tab.id, {
                 action: "showAlert", 
                 message: "Multiselect mode is now active. Use Ctrl+Click or drag to select events."
@@ -54,58 +39,55 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 
-// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//     console.log('Message received:', request);
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Message received in background script:', request); // Debugging statement
+    
+    if (request.action === 'getEventDetails') {
+        const eventId = request.eventId;
+        console.log('Fetching event details for ID:', eventId);
 
-//     if (request.action === 'getEventTime') {
-//         const eventId = request.eventId;
-//         console.log('Attempting to fetch event time for ID:', eventId);        
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+            if (chrome.runtime.lastError) {
+                console.error('Error getting auth token:', chrome.runtime.lastError);
+                sendResponse({ error: chrome.runtime.lastError.message });
+                return;
+            }
 
-//         chrome.identity.getAuthToken({ interactive: true }, (token) => {
-//             if (chrome.runtime.lastError) {
-//                 console.error('Error getting auth token:', chrome.runtime.lastError);
-//                 sendResponse({ error: 'Failed to obtain authentication token' });
-//                 return;
-//             }
+            console.log('Auth token acquired:', token);
 
-//             console.log('Auth token acquired successfully:', token); // Debugging statement
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
+            console.log('Fetching event details:', url);
 
-//             const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`;
-//             console.log('Fetching event:', url); // Debugging statement
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => {
+                console.log('Fetch response status:', response.status);
+                if (!response.ok) {
+                    return response.json().then(error => {
+                        console.error('Error response from API:', error);
+                        throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
+                    });
+                    // throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(event => {
+                console.log('Event details:', event);
+                sendResponse({ event });
+            })
+            .catch(error => {
+                console.error('Error fetching event details:', error);
+                sendResponse({ error: error.toString() });
+            });
 
-//             fetch(url, {
-//                 method: 'GET',
-//                 headers: { 
-//                     'Authorization': 'Bearer ' + token,
-//                     'Content-Type': 'application/json'
-//                 },
-//             })
-//             .then(response => {
-//                 console.log('Fetch response status:', response.status);
-//                 if (!response.ok) {
-//                     throw new Error(`HTTP error! status: ${response.status}`);
-//                 }
-//                 return response.json();
-//             })
-//             .then(event => {
-//                 console.log('Event details:', event);
-//                 if (!event.start || !event.end) {
-//                     throw new Error('Invalid event data');
-//                 }
-                
-//                 sendResponse({
-//                     start: event.start.dateTime || event.start.date,
-//                     end: event.end.dateTime || event.end.date
-//                 });
-//             })
-//             .catch(error => {
-//                 console.error('Error fetching event time:', error);
-//                 sendResponse({ error: error.toString() });
-//             });
+            return true; // Indicates an async response
+        });
 
-//             return true; // Indicates an async response
-//         });
-
-//         return true;
-//     }
-// });
+        return true; // Indicates an async response
+    }
+});
