@@ -4,6 +4,7 @@
 This is meant for people who use Google Calendar for time boxing. I would personally use this extension almost every day, because I usually have my whole schedule for the day planned out, but then some delay happens (whoops), so I'd need to shift all the rest of the day's events backwards. In Google Calendar, you have to click, drag and drop each event individually in order to adjust its timing, which I find very tedious to do if there are many events to move.
 
 ## How to set up and use this:
+NOTE: Please tell me if you want to test this and I'll add your email to the test users :-D
 1. Download the gcal-multiselect folder and its contents on your computer. 
 2. Replace YOUR_CALENDAR_ID at the top of background.js and content.js with your calendar ID, which can be found from your calendar settings. The calendar ID for your primary calendar is just your gmail address.
 3. Go to chrome://extensions/ in Google Chrome and turn on Developer Mode at the top right.
