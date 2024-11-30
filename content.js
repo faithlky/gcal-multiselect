@@ -20,6 +20,7 @@
             if (isExtensionActive) {
                 if (!listenersAdded) {
                     addEventListeners();
+                    observeDOMChanges();
                 }
             } else {
                 removeEventListeners();
@@ -67,9 +68,13 @@
         const eventId = fetchEventId(eventElement);
         if (!eventId || !initialEventTimes[eventId]) return;
 
+        console.log("Fetching event details for mouseUp on event:", eventId); // Debugging statement
+
         fetchEventDetails(eventId).then(event => {
             const currentStartTime = new Date(event.start.dateTime);
             const initialStartTime = initialEventTimes[eventId].start;
+            console.log("Current start time:", currentStartTime);
+            console.log("Initial start time:", initialStartTime);
 
             if (currentStartTime.getTime() !== initialStartTime.getTime()) {
                 const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
@@ -84,13 +89,15 @@
                         updateEvent(id, newStartTime, newEndTime);
                     }
                 });
+
+                console.log("Selected events:", selectedEvents);
+                console.log("Initial event times:", initialEventTimes);
+            } else {
+                console.log("No change in event start time detected. Not an event drag operation.");
             }
         }).catch(error => {
             console.error("Error fetching event details:", error);
         });
-
-        console.log("Selected events:", selectedEvents);
-        console.log("Initial event times:", initialEventTimes);
     }
 
 
@@ -141,7 +148,7 @@
     function toggleSelection(element) {
         let eventId = fetchEventId(element);
 
-        console.log("Clicked event:", eventId);
+        console.log("Clicked event:", eventId); // Debugging statement
         
         fetchEventDetails(eventId).then(event => {
             if (!event.start.dateTime) {
@@ -173,7 +180,7 @@
         });
     }
     
-    
+
     function updateEvent(eventId, newStartTime, newEndTime) {
 
         chrome.identity.getAuthToken({ interactive: true }, (token) => {
@@ -207,6 +214,25 @@
             .catch(error => {
                 console.error("Error updating event:", error);
             });
+        });
+    }
+
+
+    function observeDOMChanges() {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                    selectedEvents.forEach(({ element }) => {
+                        element.style.border = "2px solid black";
+                    });
+                }
+            });
+        });
+
+        observer.observe(document.body, {
+            attributes: true,
+            childList: true,
+            subtree: true
         });
     }
 
