@@ -21,7 +21,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         if (nextState === 'ON') {
             chrome.tabs.sendMessage(tab.id, {
                 action: "showAlert", 
-                message: "Multiselect mode is now active. Use Ctrl+Click or drag to select events."
+                message: "Ctrl+Click to select non-All-Day events. Move one of them, then press Ctrl+Enter to move the rest."
             });
 
             chrome.tabs.sendMessage(tab.id, { 

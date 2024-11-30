@@ -39,7 +39,7 @@
     function addEventListeners() {
         if (!listenersAdded) {
             document.addEventListener("mousedown", handleMouseDown);
-            // document.addEventListener("mouseup", handleMouseUp);
+            document.addEventListener("keydown", handleKeyDown);
             listenersAdded = true;
             console.log('Event listeners added'); // Debugging statement
         }
@@ -49,7 +49,7 @@
     function removeEventListeners() {
         if (listenersAdded) {
             document.removeEventListener("mousedown", handleMouseDown);
-            // document.removeEventListener("mouseup", handleMouseUp);
+            document.removeEventListener("keydown", handleKeyDown);
             listenersAdded = false;
             console.log('Event listeners removed'); // Debugging statement
         }
@@ -65,53 +65,62 @@
     }
 
 
-    // function handleMouseUp(e) {
-    //     console.log("MOUSE UP EVENT DETECTED."); // Debugging statement
+    function handleKeyDown(e) {
+        if (!isExtensionActive || e.key !== "Enter" || !e.ctrlKey || selectedEvents.length === 0) return;
 
-    //     if (!isExtensionActive || selectedEvents.length === 0) return;
-    //     const eventElement = e.target.closest("[role='button']");
-    //     if (!eventElement) return;
+        let differenceCount = 0;
+        let differences = [];
 
-    //     const eventId = fetchEventId(eventElement);
-    //     if (!eventId || !initialEventTimes[eventId]) return;
+        const fetchPromises = [];
 
-    //     console.log("Fetching event details for mouseUp on event:", eventId); // Debugging statement
+        selectedEvents.forEach(({ id }) => {
+            const fetchPromise = fetchEventDetails(id)
+            .then(event => {
+                const initialStartTime = initialEventTimes[id].start;
+                const currentStartTime = new Date(event.start.dateTime);
+                console.log("Initial start time for", id, ":", initialStartTime);
+                console.log("Current start time for", id, ":", currentStartTime);
+                if (currentStartTime.getTime() !== initialStartTime.getTime()) {
+                    differenceCount++;
+                    const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
+                    differences.push({ id: id, timeDifference: timeDifference });
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching event details:", error);
+            });
 
-    //     let currentStartTime = null;
-    //     let initialStartTime = initialEventTimes[eventId].start;
+            fetchPromises.push(fetchPromise);
+        });
 
-    //     fetchEventDetails(eventId).then(event => {
-    //         currentStartTime = new Date(event.start.dateTime);
-    //         console.log("Current start time (fetched):", currentStartTime);
-    //     })
-    //     .then(() => {
-    //         console.log("Current start time:", currentStartTime);
-    //         console.log("Initial start time:", initialStartTime);
+        Promise.all(fetchPromises).then(() => {
+            if (differenceCount === 0) {
+                console.log("No events have been moved. Ignoring key press.");
+                return;
+            } else if (differenceCount === 1) {
+                const timeDifference = differences[0].timeDifference;
+                selectedEvents.forEach(({ id }) => {
+                    if (id !== differences[0].id && initialEventTimes[id]) {
+                        const initialEventTime = initialEventTimes[id];
+                        if (!initialEventTime) return;
+        
+                        const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
+                        const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
+        
+                        updateEvent(id, newStartTime, newEndTime);
+                    } else if (id === differences[0].id && initialEventTimes[id]) {
+                        toggleSelection(selectedEvents.find(event => event.id === id).element);
+                    }
+                });
+                alert("Events have been moved successfully. Please wait a moment for the changes to be reflected on the calendar.");
+            } else if (differenceCount > 1) {
+                console.log("Multiple events have been moved. Ignoring key press.");
+                alert("Multiple events have been moved. Please move only one event at a time.");
+                return;
+            }
+        });
 
-    //         if (currentStartTime.getTime() !== initialStartTime.getTime()) {
-    //             const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
-    //             selectedEvents.forEach(({ id }) => {
-    //                 if (id !== eventId && initialEventTimes[id]) {
-    //                     const initialEventTime = initialEventTimes[id];
-    //                     if (!initialEventTime) return;
-
-    //                     const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
-    //                     const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
-
-    //                     updateEvent(id, newStartTime, newEndTime);
-    //                 }
-    //             });
-
-    //             console.log("Selected events:", selectedEvents);
-    //             console.log("Initial event times:", initialEventTimes);
-    //         } else {
-    //             console.log("No change in event start time detected. Not an event drag operation.");
-    //         }
-    //     })
-    //     .catch(error => {
-    //         console.error("Error fetching event details:", error);
-    //     });
-    // }
+    }
 
 
     function fetchEventId(element) {
@@ -204,6 +213,7 @@
                 console.error('Error updating event:', response.error);
             }
         });
+        toggleSelection(selectedEvents.find(event => event.id === eventId).element);
     }
 
 
@@ -216,37 +226,37 @@
                         element.style.border = "2px solid black";
                     });
 
-                    // Check if any selected event has been moved
-                    selectedEvents.forEach(({ id }) => {
-                        const eventId = id;
-                        const initialStartTime = initialEventTimes[eventId].start;
-                        let currentStartTime = null;
+                    // // Check if any selected event has been moved
+                    // selectedEvents.forEach(({ id }) => {
+                    //     const eventId = id;
+                    //     const initialStartTime = initialEventTimes[eventId].start;
+                    //     let currentStartTime = null;
 
-                        fetchEventDetails(eventId)
-                        .then(event => {
-                            currentStartTime = new Date(event.start.dateTime);
-                        })
-                        .then(() => {
-                            if (currentStartTime.getTime() !== initialStartTime.getTime()) {
-                                const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
+                    //     fetchEventDetails(eventId)
+                    //     .then(event => {
+                    //         currentStartTime = new Date(event.start.dateTime);
+                    //     })
+                    //     .then(() => {
+                    //         if (currentStartTime.getTime() !== initialStartTime.getTime()) {
+                    //             const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
 
-                                selectedEvents.forEach(({ id }) => {
-                                    if (id !== eventId && initialEventTimes[id]) {
-                                        const initialEventTime = initialEventTimes[id];
-                                        if (!initialEventTime) return;
+                    //             selectedEvents.forEach(({ id }) => {
+                    //                 if (id !== eventId && initialEventTimes[id]) {
+                    //                     const initialEventTime = initialEventTimes[id];
+                    //                     if (!initialEventTime) return;
 
-                                        const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
-                                        const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
+                    //                     const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
+                    //                     const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
 
-                                        updateEvent(id, newStartTime, newEndTime);
-                                    }
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Error fetching event details:", error);
-                        });
-                    });
+                    //                     updateEvent(id, newStartTime, newEndTime);
+                    //                 }
+                    //             });
+                    //         }
+                    //     })
+                    //     .catch(error => {
+                    //         console.error("Error fetching event details:", error);
+                    //     });
+                    // });
                 }
             });
         });
