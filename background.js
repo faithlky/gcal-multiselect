@@ -7,7 +7,7 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.sync.set({ isExtensionActive: false });
 
     chrome.storage.sync.get("calendarId", (data) => {
-        calendarId = data.calendarId || "primary";
+        calendarId = data.calendarId || "";
     });
 });
 
@@ -18,7 +18,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         isExtensionActive = request.active;
         const badgeText = isExtensionActive ? "ON" : "OFF";
         chrome.action.setBadgeText({ text: badgeText });
-
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0].id) {
                 chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive });
@@ -28,7 +27,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "updateCalendarId") {
         calendarId = request.calendarId;
-        sendResponse({ success: true });
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0].id) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: "updateCalendarId", calendarId });
+            }
+        });
     }
 
     if (request.action === "getEventsList") {

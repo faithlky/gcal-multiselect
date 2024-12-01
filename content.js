@@ -13,7 +13,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "updateCalendarId") {
-        calendarId = request.calendarId;
+        const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
+
+        Promise.all(deselectPromises).then(() => {
+            calendarId = request.calendarId;
+        }).catch(error => {
+            console.error("Error deselecting events:", error);
+        });
     }
 
     if (request.action === "toggleExtensionState") {

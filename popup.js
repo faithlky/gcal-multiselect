@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     const toggleExtension = document.getElementById("toggleExtension");
     const calendarIdInput = document.getElementById("calendarId");
     const saveCalendarIdButton = document.getElementById("saveCalendarId");
