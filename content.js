@@ -16,7 +16,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
 
         Promise.all(deselectPromises).then(() => {
-            calendarId = request.calendarId;
+            calendarId = request.newCalendarId;
+            chrome.runtime.sendMessage({ action: "updateCalendarIdComplete", calendarId });
         }).catch(error => {
             console.error("Error deselecting events:", error);
         });
@@ -42,10 +43,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-    
+
 chrome.storage.sync.get("calendarId", (data) => {
     if (data.calendarId) {
         calendarId = data.calendarId;
+        console.log("Initialized with calendar ID:", calendarId);
     }
 });
 
@@ -174,7 +176,7 @@ function handleKeyDown(e) {
 
     Promise.all(fetchPromises).then(() => {
         if (differenceCount === 0) {
-            console.log("No events have been moved. Ignoring key press.");
+            console.warn("No events have been moved. Ignoring key press.");
             return;
         } else if (differenceCount === 1) {
             const timeDifference = differences[0].timeDifference;
@@ -193,7 +195,15 @@ function handleKeyDown(e) {
             });
             alert("Events have been moved successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
         } else if (differenceCount > 1) {
-            console.log("Multiple events have been moved. Ignoring key press.");
+            differences.forEach(({ id }) => {
+                const index = differences.findIndex(difference => difference.id === id);
+                const initialEventTime = initialEventTimes[id];
+                const newStartTime = new Date(initialEventTime.start.getTime() + differences[index].timeDifference);
+                const newEndTime = new Date(initialEventTime.end.getTime() + differences[index].timeDifference);
+
+                updateEvent(id, newStartTime, newEndTime);
+            });
+            console.warn("Multiple events have been moved. Ignoring key press.");
             alert("Multiple events have been moved. Please move only one event at a time.");
             return;
         }
@@ -221,7 +231,7 @@ function fetchEventId(element) {
     }
     if (selectedEventCalendarId !== calendarId) {
         console.warn("Selected event does not belong to the correct calendar.");
-        return;
+        return 1;
     }
 
     let match2 = jslog.match(/2:\["([^"]*)"/);
@@ -250,32 +260,41 @@ function fetchEventDetails(eventId) {
 
 
 function toggleSelection(element) {
-    let eventId = fetchEventId(element);
-    
-    fetchEventDetails(eventId).then(event => {
-        if (!event.start.dateTime) {
-            console.warn("All-day event detected. Ignoring selection.");
+    return new Promise((resolve, reject) => {
+        let eventId = fetchEventId(element);
+        if (eventId === 1) {
+            resolve();
             return;
-        }
+        };
+        
+        fetchEventDetails(eventId).then(event => {
+            if (!event.start.dateTime) {
+                console.warn("All-day event detected. Ignoring selection.");
+                resolve();
+                return;
+            }
+    
+            const index = selectedEvents.findIndex(event => event.id === eventId);
+            if (index === -1) {
+                selectedEvents.push({ id: eventId, element });
+                element.style.border = "2px solid black";
+                
+                initialEventTimes[eventId] = {
+                    start: new Date(event.start.dateTime),
+                    end: new Date(event.end.dateTime),
+                };
+    
+            } else {
+                selectedEvents.splice(index, 1);
+                element.style.border = "";
+                delete initialEventTimes[eventId];
+            }
 
-        const index = selectedEvents.findIndex(event => event.id === eventId);
-        if (index === -1) {
-            selectedEvents.push({ id: eventId, element });
-            element.style.border = "2px solid black";
-            
-            initialEventTimes[eventId] = {
-                start: new Date(event.start.dateTime),
-                end: new Date(event.end.dateTime),
-            };
-
-        } else {
-            selectedEvents.splice(index, 1);
-            element.style.border = "";
-            delete initialEventTimes[eventId];
-        }
-
-    }).catch(error => {
-        console.error("Error fetching event details:", error);
+            resolve();    
+        }).catch(error => {
+            console.error("Error fetching event details:", error);
+            reject(error);
+        });
     });
 }
 

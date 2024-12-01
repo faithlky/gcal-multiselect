@@ -1,5 +1,6 @@
 let calendarId = "";
 let isExtensionActive = false;
+let authToken = null;
 
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -10,6 +11,24 @@ chrome.runtime.onInstalled.addListener(() => {
         calendarId = data.calendarId || "";
     });
 });
+
+
+function getAuthToken() {
+    return new Promise((resolve, reject) => {
+        if (authToken) {
+            resolve(authToken);
+        } else {
+            chrome.identity.getAuthToken({ interactive: true }, (token) => {
+                if (chrome.runtime.lastError) {
+                    reject(chrome.runtime.lastError);
+                } else {
+                    authToken = token;
+                    resolve(token);
+                }
+            });
+        }
+    });
+}
 
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -26,10 +45,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "updateCalendarId") {
-        calendarId = request.calendarId;
+        const newCalendarId = request.calendarId;
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0].id) {
-                chrome.tabs.sendMessage(tabs[0].id, { action: "updateCalendarId", calendarId });
+                chrome.tabs.sendMessage(tabs[0].id, { action: "updateCalendarId", newCalendarId });
+            }
+        });
+        chrome.runtime.onMessage.addListener(function listener(contentRequest) {
+            if (contentRequest.action === "updateCalendarIdComplete") {
+                calendarId = contentRequest.calendarId;
+                chrome.runtime.onMessage.removeListener(listener);
             }
         });
     }
@@ -37,13 +62,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "getEventsList") {
         const { timeMin, timeMax } = request;
 
-        chrome.identity.getAuthToken({ interactive: true }, (token) => {
-            if (chrome.runtime.lastError) {
-                console.error("Error getting auth token:", chrome.runtime.lastError);
-                sendResponse({ error: chrome.runtime.lastError.message });
-                return;
-            }
-
+        getAuthToken().then((token) => {
             const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
             fetch(url, {
                 method: "GET",
@@ -70,6 +89,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
 
             return true;
+        })
+        .catch(error => {
+            console.error("Error getting auth token:", error);
+            sendResponse({ error: error.message });
         });
 
         return true;
@@ -78,13 +101,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "getEventDetails") {
         const eventId = request.eventId;
 
-        chrome.identity.getAuthToken({ interactive: true }, (token) => {
-            if (chrome.runtime.lastError) {
-                console.error("Error getting auth token:", chrome.runtime.lastError);
-                sendResponse({ error: chrome.runtime.lastError.message });
-                return;
-            }
-
+        getAuthToken().then((token) => {
             const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
             fetch(url, {
                 method: "GET",
@@ -111,6 +128,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
 
             return true;
+        })
+        .catch(error => {
+            console.error("Error getting auth token:", error);
+            sendResponse({ error: error.message });
         });
 
         return true;
@@ -120,13 +141,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "updateEvent") {
         const { eventId, newStartTime, newEndTime } = request;
 
-        chrome.identity.getAuthToken({ interactive: true }, (token) => {
-            if (chrome.runtime.lastError) {
-                console.error("Error getting auth token:", chrome.runtime.lastError);
-                sendResponse({ error: chrome.runtime.lastError.message });
-                return;
-            }
-
+        getAuthToken().then((token) => {
             const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
             const eventPatch = {
                 start: {
@@ -155,6 +170,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
 
             return true;
+        })
+        .catch(error => {
+            console.error("Error getting auth token:", error);
+            sendResponse({ error: error.message });
         });
 
         return true;

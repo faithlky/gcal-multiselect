@@ -18,7 +18,11 @@
     },
     "content_scripts": [
         {
-            "matches": ["https://calendar.google.com/*"],
+            "matches": [
+                "https://calendar.google.com/calendar/u/*/r/week/*",
+                "https://calendar.google.com/calendar/u/*/r/day/*",
+                "https://calendar.google.com/calendar/u/*/r/customday/*"
+            ],
             "js": ["content.js"]
         }
     ],
