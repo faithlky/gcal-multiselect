@@ -42,7 +42,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
 
             const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
-            
             fetch(url, {
                 method: "GET",
                 headers: {
