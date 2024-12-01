@@ -6,7 +6,8 @@
     "permissions": [
         "activeTab", 
         "identity", 
-        "scripting"
+        "scripting",
+        "storage"
     ],
     "host_permissions": [
         "https://www.googleapis.com/*", 
@@ -24,10 +25,11 @@
     "oauth2": {
         "client_id": "426254219480-jrr4mhr18nos1fsfjsdehlssl09sej6q.apps.googleusercontent.com",
         "scopes": [
-            "https://www.googleapis.com/auth/calendar"
+            "https://www.googleapis.com/auth/calendar.events"
         ]
     },
     "action": {
+        "default_popup": "popup.html",
         "default_icon": {
             "16": "images/icon-16.png",
             "32": "images/icon-32.png",
