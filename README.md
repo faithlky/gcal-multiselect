@@ -13,6 +13,7 @@ NOTE: Please tell me if you want to test this and I'll add your email to the tes
 6. _Move the events:_ Move one of the selected events, then press **CTRL+ENTER** to move the rest.
 
 (Please be patient, it takes a while for the selection borders and event changes to appear.)
+![screenshot of popup](https://github.com/faithlky/gcal-multiselect/blob/main/images/popup-screenshot.png?raw=true)
 
 ## Future improvements (maybe):
 * Autofill the calendar ID
