@@ -185,7 +185,7 @@ function handleKeyDown(e) {
                     toggleSelection(selectedEvents.find(event => event.id === id).element);
                 }
             });
-            alert("Events have been moved successfully. Please wait a moment for the changes to be reflected on the calendar.");
+            alert("Events have been moved successfully. Please wait a moment or refresh the page for the changes to be reflected on the calendar.");
         } else if (differenceCount > 1) {
             console.log("Multiple events have been moved. Ignoring key press.");
             alert("Multiple events have been moved. Please move only one event at a time.");
