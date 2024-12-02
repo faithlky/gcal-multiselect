@@ -6,7 +6,6 @@ let authToken = null;
 chrome.runtime.onInstalled.addListener(() => {
     chrome.action.setBadgeText({ text: "OFF" });
     chrome.storage.sync.set({ isExtensionActive: false });
-
     chrome.storage.sync.get("calendarId", (data) => {
         calendarId = data.calendarId || "";
     });
@@ -51,12 +50,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 chrome.tabs.sendMessage(tabs[0].id, { action: "updateCalendarId", newCalendarId });
             }
         });
-        chrome.runtime.onMessage.addListener(function listener(contentRequest) {
-            if (contentRequest.action === "updateCalendarIdComplete") {
+        const listener = (contentRequest) => {
+            if (contentRequest.action === "deselectedAllEvents") {
                 calendarId = contentRequest.calendarId;
                 chrome.runtime.onMessage.removeListener(listener);
             }
-        });
+        };
+        chrome.runtime.onMessage.addListener(listener);
+        return true;
     }
 
     if (request.action === "getEventsList") {
@@ -136,7 +137,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         return true;
     }
-
     
     if (request.action === "updateEvent") {
         const { eventId, newStartTime, newEndTime } = request;
@@ -166,6 +166,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             })
             .catch(error => {
                 console.error("Error updating event:", error);
+                sendResponse({ error: error.toString() });
+            });
+
+            return true;
+        })
+        .catch(error => {
+            console.error("Error getting auth token:", error);
+            sendResponse({ error: error.message });
+        });
+
+        return true;
+    }
+
+    if (request.action === "deleteEvent") {
+        const eventId = request.eventId;
+
+        getAuthToken().then((token) => {
+            const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`;
+            fetch(url, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(error => {
+                        console.error("Error response from API:", error);
+                        throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
+                    });
+                }
+                sendResponse({ success: true });
+            })
+            .catch(error => {
+                console.error("Error deleting event:", error);
                 sendResponse({ error: error.toString() });
             });
 

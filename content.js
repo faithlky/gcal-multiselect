@@ -6,7 +6,30 @@ let initialEventTimes = {};
 let observer = null;
 
 
+chrome.storage.sync.get("calendarId", (data) => {
+    if (data.calendarId) {
+        calendarId = data.calendarId;
+    }
+});
+
+
+// Add event listeners if the extension is already active when the page loads
+chrome.storage.sync.get("isExtensionActive", (data) => {
+    if (data.isExtensionActive) {
+        isExtensionActive = data.isExtensionActive;
+        if (isExtensionActive) {
+            addEventListeners();
+            observeDOMChanges();
+        }
+    }
+});
+
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+
+    if (request.action === "setExistingCalendarId") {
+        calendarId = request.calendarId;
+    }
 
     if (request.action === "showAlert") {
         alert(request.message);
@@ -14,16 +37,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "updateCalendarId") {
         const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
-
         Promise.all(deselectPromises).then(() => {
             calendarId = request.newCalendarId;
-            chrome.runtime.sendMessage({ action: "updateCalendarIdComplete", calendarId });
+            chrome.runtime.sendMessage({ action: "deselectedAllEvents", calendarId });
         }).catch(error => {
             console.error("Error deselecting events:", error);
         });
     }
 
     if (request.action === "toggleExtensionState") {
+        
         isExtensionActive = request.active;
 
         if (isExtensionActive) {
@@ -32,22 +55,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 observeDOMChanges();
             }
         } else {
-            removeEventListeners();
-            selectedEvents = [];
-            initialEventTimes = {};
-            if (observer) {
-                observer.disconnect();
-                observer = null;
-            }
+            const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
+            Promise.all(deselectPromises).then(() => {
+                removeEventListeners();
+                selectedEvents = [];
+                initialEventTimes = {};
+                if (observer) {
+                    observer.disconnect();
+                    observer = null;
+                }
+            }).catch(error => {
+                console.error("Error deselecting events:", error);
+            });
         }
-    }
-});
-
-
-chrome.storage.sync.get("calendarId", (data) => {
-    if (data.calendarId) {
-        calendarId = data.calendarId;
-        console.log("Initialized with calendar ID:", calendarId);
     }
 });
 
@@ -72,7 +92,7 @@ function removeEventListeners() {
 
 function handleMouseDown(e) {
     if (!isExtensionActive) return;
-    if (e.ctrlKey) {
+    if (e.ctrlKey || e.metaKey) {
         const eventElement = e.target.closest("[role='button']");
         if (eventElement) {
             toggleSelection(eventElement);
@@ -149,66 +169,71 @@ function getEventsList(timeMin, timeMax) {
 
 
 function handleKeyDown(e) {
-    if (!isExtensionActive || e.key !== "Enter" || !e.ctrlKey || selectedEvents.length === 0) return;
+    if (!isExtensionActive || selectedEvents.length === 0) return;
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        let differenceCount = 0;
+        let differences = [];
 
-    let differenceCount = 0;
-    let differences = [];
+        const fetchPromises = [];
 
-    const fetchPromises = [];
+        selectedEvents.forEach(({ id }) => {
+            const fetchPromise = fetchEventDetails(id)
+            .then(event => {
+                const initialStartTime = initialEventTimes[id].start;
+                const currentStartTime = new Date(event.start.dateTime);
+                if (currentStartTime.getTime() !== initialStartTime.getTime()) {
+                    differenceCount++;
+                    const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
+                    differences.push({ id: id, timeDifference: timeDifference });
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching event details:", error);
+            });
 
-    selectedEvents.forEach(({ id }) => {
-        const fetchPromise = fetchEventDetails(id)
-        .then(event => {
-            const initialStartTime = initialEventTimes[id].start;
-            const currentStartTime = new Date(event.start.dateTime);
-            if (currentStartTime.getTime() !== initialStartTime.getTime()) {
-                differenceCount++;
-                const timeDifference = currentStartTime.getTime() - initialStartTime.getTime();
-                differences.push({ id: id, timeDifference: timeDifference });
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching event details:", error);
+            fetchPromises.push(fetchPromise);
         });
 
-        fetchPromises.push(fetchPromise);
-    });
-
-    Promise.all(fetchPromises).then(() => {
-        if (differenceCount === 0) {
-            console.warn("No events have been moved. Ignoring key press.");
-            return;
-        } else if (differenceCount === 1) {
-            const timeDifference = differences[0].timeDifference;
-            selectedEvents.forEach(({ id }) => {
-                if (id !== differences[0].id && initialEventTimes[id]) {
+        Promise.all(fetchPromises).then(() => {
+            if (differenceCount === 0) {
+                console.log("No events have been moved. Ignoring key press.");
+                return;
+            } else if (differenceCount === 1) {
+                const timeDifference = differences[0].timeDifference;
+                selectedEvents.forEach(({ id }) => {
+                    if (id !== differences[0].id && initialEventTimes[id]) {
+                        const initialEventTime = initialEventTimes[id];
+                        if (!initialEventTime) return;
+        
+                        const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
+                        const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
+        
+                        updateEvent(id, newStartTime, newEndTime);
+                    } else if (id === differences[0].id && initialEventTimes[id]) {
+                        toggleSelection(selectedEvents.find(event => event.id === id).element);
+                    }
+                });
+                alert("Events have been moved successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
+            } else if (differenceCount > 1) {
+                differences.forEach(({ id }) => {
+                    const index = differences.findIndex(difference => difference.id === id);
                     const initialEventTime = initialEventTimes[id];
-                    if (!initialEventTime) return;
-    
-                    const newStartTime = new Date(initialEventTime.start.getTime() + timeDifference);
-                    const newEndTime = new Date(initialEventTime.end.getTime() + timeDifference);
-    
+                    const newStartTime = new Date(initialEventTime.start.getTime() + differences[index].timeDifference);
+                    const newEndTime = new Date(initialEventTime.end.getTime() + differences[index].timeDifference);
+
                     updateEvent(id, newStartTime, newEndTime);
-                } else if (id === differences[0].id && initialEventTimes[id]) {
-                    toggleSelection(selectedEvents.find(event => event.id === id).element);
-                }
-            });
-            alert("Events have been moved successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
-        } else if (differenceCount > 1) {
-            differences.forEach(({ id }) => {
-                const index = differences.findIndex(difference => difference.id === id);
-                const initialEventTime = initialEventTimes[id];
-                const newStartTime = new Date(initialEventTime.start.getTime() + differences[index].timeDifference);
-                const newEndTime = new Date(initialEventTime.end.getTime() + differences[index].timeDifference);
-
-                updateEvent(id, newStartTime, newEndTime);
-            });
-            console.warn("Multiple events have been moved. Ignoring key press.");
-            alert("Multiple events have been moved. Please move only one event at a time.");
-            return;
-        }
-    });
-
+                });
+                console.log("Multiple events have been moved. Ignoring key press.");
+                alert("Multiple events have been moved. Please move only one event at a time.");
+                return;
+            }
+        });
+    } else if (e.key === "Delete") {
+        selectedEvents.forEach(({ id }) => {
+            deleteEvent(id);
+        });
+        alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
+    }
 }
 
 
@@ -219,7 +244,7 @@ function fetchEventId(element) {
 
     let jslog = element.getAttribute("jslog");
     if (!jslog) {
-        console.warn("No jslog found on the element. Likely a wrong element selected.");
+        console.log("No jslog found on the element. Likely a wrong element selected.");
         return;
     }
 
@@ -230,7 +255,7 @@ function fetchEventId(element) {
         return;
     }
     if (selectedEventCalendarId !== calendarId) {
-        console.warn("Selected event does not belong to the correct calendar.");
+        console.log("Selected event does not belong to the correct calendar.");
         return 1;
     }
 
@@ -269,7 +294,7 @@ function toggleSelection(element) {
         
         fetchEventDetails(eventId).then(event => {
             if (!event.start.dateTime) {
-                console.warn("All-day event detected. Ignoring selection.");
+                console.log("All-day event detected. Ignoring selection.");
                 resolve();
                 return;
             }
@@ -311,6 +336,18 @@ function updateEvent(eventId, newStartTime, newEndTime) {
         }
     });
     toggleSelection(selectedEvents.find(event => event.id === eventId).element);
+}
+
+
+function deleteEvent(eventId) {
+    chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
+        if (response.error) {
+            console.error("Error deleting event:", response.error);
+        }
+    });
+    const index = selectedEvents.findIndex(event => event.id === eventId);
+    selectedEvents.splice(index, 1);
+    delete initialEventTimes[eventId];
 }
 
 
