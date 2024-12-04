@@ -3,7 +3,7 @@
 ## Objective:
 This is meant for people who use Google Calendar for time boxing.
 
-I usually have my whole schedule for the day planned out, but when some delay happens (whoops), I'd need to shift all the rest of the day's events backwards. Clicking, dragging and dropping each event to adjust its timing is very tedious to do if there are many events to move.
+I usually have my whole schedule for the day planned out, but when some delay happens (whoops), I'd need to shift all the rest of the day's events backwards. Adjusting each event's timing individually is very tedious to do if there are many events to move.
 
 I also have recurring events in my daily schedule, but if I want to break from the schedule for a day, I'd need to delete all the scheduled events one by one.
 
