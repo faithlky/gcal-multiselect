@@ -12,6 +12,16 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 
+chrome.runtime.onStartup.addListener(() => {
+    chrome.storage.sync.get(["isExtensionActive", "calendarId"], (data) => {
+        isExtensionActive = data.isExtensionActive || false;
+        const badgeText = isExtensionActive ? "ON" : "OFF";
+        chrome.action.setBadgeText({ text: badgeText });
+        calendarId = data.calendarId || "";
+    });
+});
+
+
 function getAuthToken() {
     return new Promise((resolve, reject) => {
         if (authToken) {
