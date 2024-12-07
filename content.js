@@ -27,6 +27,10 @@ chrome.storage.sync.get("isExtensionActive", (data) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
+    if (request.action === "isContentScriptRunning") {
+        sendResponse({ running: true });
+    }
+
     if (request.action === "setExistingCalendarId") {
         calendarId = request.calendarId;
     }
@@ -35,7 +39,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         alert(request.message);
     }
 
-    if (request.action === "updateCalendarId") {
+    if (request.action === "updateCalendarId" || request.action === "deselectAllEvents") {
         const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
         Promise.all(deselectPromises).then(() => {
             calendarId = request.newCalendarId;
@@ -46,9 +50,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "toggleExtensionState") {
-        
         isExtensionActive = request.active;
-
         if (isExtensionActive) {
             if (!listenersAdded) {
                 addEventListeners();
@@ -245,14 +247,14 @@ function fetchEventId(element) {
     let jslog = element.getAttribute("jslog");
     if (!jslog) {
         console.log("No jslog found on the element. Likely a wrong element selected.");
-        return;
+        return 1;
     }
 
     let match1 = jslog.match(/1:\["([^"]*)"/);
     let selectedEventCalendarId = match1 ? match1[1] : null;
     if (!selectedEventCalendarId) {
         console.error("No calendar ID found on the element.");
-        return;
+        return 1;
     }
     if (selectedEventCalendarId !== calendarId) {
         console.log("Selected event does not belong to the correct calendar.");
@@ -263,7 +265,7 @@ function fetchEventId(element) {
     let eventId = match2 ? match2[1] : null;
     if (!eventId) {
         console.error("No event ID found on the element.");
-        return;
+        return 1;
     }
 
     return eventId;

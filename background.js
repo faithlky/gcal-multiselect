@@ -15,11 +15,83 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
     chrome.storage.sync.get(["isExtensionActive", "calendarId"], (data) => {
         isExtensionActive = data.isExtensionActive || false;
-        const badgeText = isExtensionActive ? "ON" : "OFF";
+        let badgeText = "";
+        if (isExtensionActive) {
+            badgeText = "ON";
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0].id) {
+                    let promise = checkAndInjectContentScript(tabs[0].id);
+                    promise.then(
+                        chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive })
+                    )
+                }
+            });
+        } else {
+            badgeText = "OFF";
+        }
         chrome.action.setBadgeText({ text: badgeText });
         calendarId = data.calendarId || "";
     });
 });
+
+
+// When page is reloaded
+chrome.webNavigation.onCommitted.addListener(() => {
+    chrome.storage.sync.get(["isExtensionActive", "calendarId"], (data) => {
+        if (isExtensionActive) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0].id) {
+                    let promise = checkAndInjectContentScript(tabs[0].id);
+                    promise.then(
+                        chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive })
+                    )
+                }
+            });
+        }
+        calendarId = data.calendarId || "";
+    });
+}, {
+    url: [{ hostContains: "calendar.google.com/calendar" }]
+});
+
+
+// When user switches to a different week/day, which changes the tab's url
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
+        chrome.storage.sync.get(["isExtensionActive", "calendarId"], (data) => {
+            if (isExtensionActive && calendarId) {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: "deselectAllEvents", newCalendarId: data.calendarId })
+                });
+            }
+        });
+    }
+});
+
+
+function checkAndInjectContentScript(tabId) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, { action: "isContentScriptRunning"}, (response) => {
+            if (chrome.runtime.lastError || !response || !response.running) {
+                chrome.scripting.executeScript({
+                    target: { tabId: tabId },
+                    files: ["content.js"]
+                }, () => {
+                    if (chrome.runtime.lastError) {
+                        console.error("Failed to inject content script:", chrome.runtime.lastError);
+                        reject(chrome.runtime.lastError);
+                    } else {
+                        console.log("Content script injected successfully.");
+                        resolve();
+                    }
+                });
+            } else {
+                console.log("Content script is already running.");
+                resolve();
+            }
+        })
+    })
+}
 
 
 function getAuthToken() {
@@ -44,13 +116,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     if (request.action === "toggleExtensionState") {
         isExtensionActive = request.active;
-        const badgeText = isExtensionActive ? "ON" : "OFF";
+        let badgeText = "";
+        if (isExtensionActive) {
+            badgeText = "ON";
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0].id) {
+                    let promise = checkAndInjectContentScript(tabs[0].id);
+                    promise.then(
+                        result => chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive }),
+                        error => console.error("Error with checkAndInjectContentScript promise.")
+                    )
+                }
+            });
+        } else {
+            badgeText = "OFF";
+        }
         chrome.action.setBadgeText({ text: badgeText });
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0].id) {
-                chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive });
-            }
-        });
     }
 
     if (request.action === "updateCalendarId") {
