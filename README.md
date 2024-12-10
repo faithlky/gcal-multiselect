@@ -23,9 +23,9 @@ NOTE: Please tell me if you want to test this and I'll add your email to the tes
 (Please be patient, it takes a while for the selection borders and event changes to appear.)
 
 ### If you want to make your own version of this:
-1. Refer to https://stackoverflow.com/a/21500707 to obtain the extension ID for step 5 and the "key" for step 6. In summary:
-    * In Developer Mode on chrome://extensions/, click Pack Extension, select the downloaded extension's directory, leave the Private Key File blank, and then Pack Extension. There should now be a .crx file and a .pem file in the directory.
-    * Go to https://robwu.nl/crxviewer/, choose the .crx file, then Inspect to open the console. You should see the public key and extension ID.
+1. Delete the .crx and .pem files in the directory. Refer to https://stackoverflow.com/a/21500707 to generate new ones. In summary:
+    * In Developer Mode on chrome://extensions/, click Pack Extension, select the extension's directory, leave the Private Key File field blank, and then Pack Extension. There should now be a new .crx file and a new .pem file in the directory.
+    * Go to https://robwu.nl/crxviewer/, choose the .crx file, then Inspect to open the console. The public key is for step 6 and the extension ID is for step 5.
 2. Go to console.cloud.google.com > Create a new project
 3. "APIs & Services" > "Enabled APIs & Services" > Enable Google Calendar API
 4. "OAuth Consent Screen" > "External" > "Create" > Fill in the required information > Add the scope .../auth/calendar.events > Add your test users
