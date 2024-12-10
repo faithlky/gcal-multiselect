@@ -23,13 +23,17 @@ NOTE: Please tell me if you want to test this and I'll add your email to the tes
 (Please be patient, it takes a while for the selection borders and event changes to appear.)
 
 ### If you want to make your own version of this:
-1. Go to console.cloud.google.com > Create a new project
-2. "APIs & Services" > "Enabled APIs & Services" > Enable Google Calendar API
-3. "OAuth Consent Screen" > "External" > "Create" > Fill in the required information > Add the scope .../auth/calendar.events > Add your test users
-4. "Credientials" > "Create Credentials" > "OAuth client ID" > Application type: Chrome Extension; Item ID: (copy the extension's ID from chrome://extensions/ in developer mode) > Copy the client ID
-5. Replace "client_id" in manifest.json with your own client ID.
+1. Refer to https://stackoverflow.com/a/21500707 to obtain the extension ID for step 5 and the "key" for step 6. In summary:
+    * In Developer Mode on chrome://extensions/, click Pack Extension, select the downloaded extension's directory, leave the Private Key File blank, and then Pack Extension. There should now be a .crx file and a .pem file in the directory.
+    * Go to https://robwu.nl/crxviewer/, choose the .crx file, then Inspect to open the console. You should see the public key and extension ID.
+2. Go to console.cloud.google.com > Create a new project
+3. "APIs & Services" > "Enabled APIs & Services" > Enable Google Calendar API
+4. "OAuth Consent Screen" > "External" > "Create" > Fill in the required information > Add the scope .../auth/calendar.events > Add your test users
+5. "Credientials" > "Create Credentials" > "OAuth client ID" > Application type: Chrome Extension; Item ID: (copy the extension ID from the CRX Viewer) > Copy the client ID
+6. Replace "client_id" and "key" in manifest.json with your own client ID (from step 5) and public key (from step 1) respectively.
 
 ## Future improvements (maybe):
 * Autofill the calendar ID
+* Allow users to save calendar IDs for multiple calendars in a list and select one of them at any time to modify events from that calendar, without having to copy & paste IDs
 * It would be really nice if all the selected events would just shift together once one is shifted, without having to press Ctrl+Enter, but unfortunately, it seems like Google Calendar does something when events are dragged & dropped which prevents the dropping of events from registering as mouseups. I'd like to try and find an alternative solution if possible.
 * Everything is kind of very slow... 🐌... Gotta try and fix that, though I'm not sure how I might approach this problem, since Google Calendar itself sometimes lags when editing events.
