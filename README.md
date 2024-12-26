@@ -34,6 +34,5 @@ NOTE: Please tell me if you want to test this and I'll add your email to the tes
 
 ## Future improvements (maybe):
 * Autofill the calendar ID
-* Allow users to save calendar IDs for multiple calendars in a list and select one of them at any time to modify events from that calendar, without having to copy & paste IDs
 * It would be really nice if all the selected events would just shift together once one is shifted, without having to press Ctrl+Enter, but unfortunately, it seems like Google Calendar does something when events are dragged & dropped which prevents the dropping of events from registering as mouseups. I'd like to try and find an alternative solution if possible.
 * Everything is kind of very slow... 🐌... Gotta try and fix that, though I'm not sure how I might approach this problem, since Google Calendar itself sometimes lags when editing events.

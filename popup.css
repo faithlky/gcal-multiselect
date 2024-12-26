@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Roboto+Serif:ital,opsz,wght@0,8..144,100..900;1,8..144,100..900&display=swap');
+        
+body {
+    min-width: 450px;
+    background-color: #F1F2F9;
+    font-family: "Plus Jakarta Sans";
+}
+
+strong, h1, h4, h5 {
+    font-weight: 700;
+}
+
+.mainDiv {
+    padding: 20px;
+}
+
+.mainLi {
+    margin: 0 0 10px 0;
+}
+
+/* Enable extension toggle switch */
+
+#enableExtension {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+#title {
+    display: flex;
+    justify-content: space-between;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 2em;
+    height: 1em;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: white;
+    -webkit-transition: 0.25s;
+    transition: 0.25s;
+    border-radius: 1em;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 0.7em;
+    width: 0.7em;
+    left: 0.15em;
+    bottom: 0.15em;
+    background-color: #c1c0c0;
+    -webkit-transition: .25s;
+    transition: .25s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #4eba79;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(1em);
+    -ms-transform: translateX(1em);
+    transform: translateX(1em);
+    background-color: white;
+}
+
+/* Add a calendar */
+
+#addCalendarForm {
+    display: flex;
+    gap: 0.5em;
+}

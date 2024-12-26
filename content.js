@@ -1,4 +1,4 @@
-let calendarId = "";
+let selectedCalendarId = "";
 let isExtensionActive = false;
 let listenersAdded = false;
 let selectedEvents = [];
@@ -6,9 +6,9 @@ let initialEventTimes = {};
 let observer = null;
 
 
-chrome.storage.sync.get("calendarId", (data) => {
-    if (data.calendarId) {
-        calendarId = data.calendarId;
+chrome.storage.sync.get("selectedCalendarId", (data) => {
+    if (data.selectedCalendarId) {
+        selectedCalendarId = data.selectedCalendarId;
     }
 });
 
@@ -31,19 +31,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ running: true });
     }
 
-    if (request.action === "setExistingCalendarId") {
-        calendarId = request.calendarId;
-    }
-
     if (request.action === "showAlert") {
         alert(request.message);
     }
 
-    if (request.action === "updateCalendarId" || request.action === "deselectAllEvents") {
+    if (request.action === "updateSelectedCalendarId" || request.action === "deselectAllEvents") {
         const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
         Promise.all(deselectPromises).then(() => {
-            calendarId = request.newCalendarId;
-            chrome.runtime.sendMessage({ action: "deselectedAllEvents", calendarId });
+            selectedCalendarId = request.newSelectedCalendarId;
+            chrome.runtime.sendMessage({ action: "deselectedAllEvents", selectedCalendarId });
         }).catch(error => {
             console.error("Error deselecting events:", error);
         });
@@ -256,7 +252,7 @@ function fetchEventId(element) {
         console.error("No calendar ID found on the element.");
         return 1;
     }
-    if (selectedEventCalendarId !== calendarId) {
+    if (selectedEventCalendarId !== selectedCalendarId) {
         console.log("Selected event does not belong to the correct calendar.");
         return 1;
     }
@@ -341,15 +337,44 @@ function updateEvent(eventId, newStartTime, newEndTime) {
 }
 
 
+// function deleteEvent(eventId) {
+//     chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
+//         if (response.error) {
+//             console.error("Error deleting event:", response.error);
+//         }
+//     });
+//     const index = selectedEvents.findIndex(event => event.id === eventId);
+//     selectedEvents.splice(index, 1);
+//     delete initialEventTimes[eventId];
+// }
+
+
 function deleteEvent(eventId) {
-    chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
-        if (response.error) {
-            console.error("Error deleting event:", response.error);
+    fetchEventDetails(eventId).then(event => {
+        if (event.recurringEventId) {
+            // If the event is a recurring event, change the status of the instance to "cancelled"
+            chrome.runtime.sendMessage({ action: "deleteRecurringEventInstance", instanceId: eventId }, (response) => {
+                if (response.error) {
+                    console.error("Error deleting recurring event instance:", response.error);
+                }
+            });
+        } else {
+            // If the event is not a recurring event, delete the event itself
+            chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
+                if (response.error) {
+                    console.error("Error deleting event:", response.error);
+                }
+            });
         }
+        // Remove the event from the selected events list
+        const index = selectedEvents.findIndex(event => event.id === eventId);
+        if (index !== -1) {
+            selectedEvents.splice(index, 1);
+            delete initialEventTimes[eventId];
+        }
+    }).catch(error => {
+        console.error("Error fetching event details:", error);
     });
-    const index = selectedEvents.findIndex(event => event.id === eventId);
-    selectedEvents.splice(index, 1);
-    delete initialEventTimes[eventId];
 }
 
 

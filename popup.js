@@ -1,32 +1,86 @@
 document.addEventListener("DOMContentLoaded", () => {
     const toggleExtension = document.getElementById("toggleExtension");
+    const calendarNameInput = document.getElementById("calendarName");
     const calendarIdInput = document.getElementById("calendarId");
-    const saveCalendarIdButton = document.getElementById("saveCalendarId");
+    const addCalendarButton = document.getElementById("addCalendarButton");
+    const selectCalendarSelect = document.getElementById("selectCalendarSelect");
+    const removeCalendarSelect = document.getElementById("removeCalendarSelect");
+    const removeCalendarButton = document.getElementById("removeCalendarButton");
 
-    chrome.storage.sync.get(["isExtensionActive", "calendarId"], (data) => {
+    chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId", "calendars"], (data) => {
         toggleExtension.checked = data.isExtensionActive || false;
-        calendarIdInput.value = data.calendarId || "";
+        selectCalendarSelect.value = data.selectedCalendarId || "";
+        loadCalendars(data.calendars || []);
     });
 
     toggleExtension.addEventListener("change", () => {
         const isExtensionActive = toggleExtension.checked;
-
         chrome.storage.sync.set({ isExtensionActive }, () => {
             chrome.runtime.sendMessage({ action: "toggleExtensionState", active: isExtensionActive });
         });
     });
 
-    saveCalendarIdButton.addEventListener("click", () => {
+    addCalendarButton.addEventListener("click", () => {
+        const calendarName = calendarNameInput.value;
         const calendarId = calendarIdInput.value;
-
-        if (!calendarId) {
-            alert("Please enter a valid Calendar ID.");
+        if (!calendarName) {
+            alert("Please enter a calendar name.");
             return;
         }
-
-        chrome.storage.sync.set({ calendarId }, () => {
-            chrome.runtime.sendMessage({ action: "updateCalendarId", calendarId });
-            alert("Calendar ID saved.");
+        if (!calendarId) {
+            alert("Please enter a valid calendar ID.");
+            return;
+        }
+        chrome.storage.sync.get("calendars", (data) => {
+            const calendars = data.calendars || [];
+            calendars.push({ name: calendarName, id: calendarId });
+            chrome.storage.sync.set({ calendars }, () => {
+                loadCalendars(calendars);
+                alert("Calendar added.");
+            });
         });
     });
+
+    selectCalendarSelect.addEventListener("change", () => {
+        const selectedCalendarId = selectCalendarSelect.value;
+        chrome.storage.sync.set({ selectedCalendarId }, () => {
+            chrome.runtime.sendMessage({ action: "updateSelectedCalendarId", selectedCalendarId });
+            alert("Calendar selected.");
+        });
+    });
+
+    removeCalendarButton.addEventListener("click", () => {
+        const calendarIdToRemove = removeCalendarSelect.value;
+        if (!calendarIdToRemove) {
+            alert("Please select a calendar to remove.");
+            return;
+        }
+        chrome.storage.sync.get("calendars", (data) => {
+            let calendars = data.calendars || [];
+            calendars = calendars.filter(calendar => calendar.id !== calendarIdToRemove);
+            chrome.storage.sync.set({ calendars }, () => {
+                loadCalendars(calendars);
+                alert("Calendar removed.");
+            });
+        });
+    });
+
+    function loadCalendars(calendars) {
+        selectCalendarSelect.innerHTML = '<option disabled="" selected="">Calendar</option>';
+        removeCalendarSelect.innerHTML = '<option disabled="" selected="">Select calendar to remove</option>';
+        calendars.forEach((calendar) => {
+            const selectOption = document.createElement("option");
+            selectOption.value = calendar.id;
+            selectOption.innerText = `${calendar.name} (${calendar.id})`;
+            selectCalendarSelect.appendChild(selectOption);
+            
+            const removeOption = document.createElement("option");
+            removeOption.value = calendar.id;
+            removeOption.innerText = `${calendar.name} (${calendar.id})`;
+            removeCalendarSelect.appendChild(removeOption);
+        });
+        chrome.storage.sync.get("selectedCalendarId", (data) => {
+            selectCalendarSelect.value = data.selectedCalendarId || "";
+        });
+    }
 });
