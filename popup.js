@@ -66,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function loadCalendars(calendars) {
-        selectCalendarSelect.innerHTML = '<option disabled="" selected="">Calendar</option>';
+        selectCalendarSelect.innerHTML = '<option disabled="" selected="">Add a calendar below first</option>';
         removeCalendarSelect.innerHTML = '<option disabled="" selected="">Select calendar to remove</option>';
         calendars.forEach((calendar) => {
             const selectOption = document.createElement("option");

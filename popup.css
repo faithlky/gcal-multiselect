@@ -18,6 +18,11 @@ strong, h1, h4, h5 {
     margin: 0 0 10px 0;
 }
 
+#addCalendarForm, #removeCalendarDiv {
+    display: flex;
+    gap: 0.5em;
+}
+
 /* Enable extension toggle switch */
 
 #enableExtension {
@@ -79,11 +84,4 @@ input:checked + .slider:before {
     -ms-transform: translateX(1em);
     transform: translateX(1em);
     background-color: white;
-}
-
-/* Add a calendar */
-
-#addCalendarForm {
-    display: flex;
-    gap: 0.5em;
 }

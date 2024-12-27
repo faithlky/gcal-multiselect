@@ -18,18 +18,19 @@
                 <input type="checkbox" id="toggleExtension">
                 <span class="slider"></span>
             </label>
-            <label class="form-check-label" for="toggleExtension">Enable extension</label>
+            <label for="toggleExtension">Enable extension</label>
         </div>
+        <br>
+        <label for="selectCalendar">Select your calendar: </label>
+        <select name="selectCalendar" id="selectCalendarSelect" class="form-select">
+            <option disabled="" selected="">Add a calendar below first</option>
+            <!-- Why isn't this disabled option visible when it's selected?
+             Also, can we make it such that it says "Add a calendar below first" when there are no other options, 
+             and change to "Select a calendar" when there are other options? -->
+        </select>
     </div>
 
     <div class="mainDiv" style="background-color: #E7E9EF">
-
-        <label for="selectCalendar"><h5>Select your calendar: </h5></label>
-        <select name="selectCalendar" id="selectCalendarSelect" class="form-select">
-            <option disabled="" selected="">Calendar</option>
-        </select>
-
-        <hr>
 
         <label for="addCalendar">Add a calendar: </label>
         <form name="addCalendar" id="addCalendarForm">
@@ -41,11 +42,14 @@
         <br>
 
         <label for="removeCalendar">Remove a calendar from this extension's list: </label>
-        <select name="removeCalendar" id="removeCalendarSelect" class="form-select">
-            <option disabled="" selected="">Select calendar to remove</option>
-        </select>
-        <button id="removeCalendarButton" class="btn btn-outline-danger">Remove</button>
-
+        <div id="removeCalendarDiv">
+            <select name="removeCalendar" id="removeCalendarSelect" class="form-select">
+                <option disabled="" selected="">Select calendar to remove</option>
+            </select>
+            <button id="removeCalendarButton" class="btn btn-outline-danger">Remove</button>    
+        </div>
+        
+        <br>
         <hr>
     
         <h5>Instructions</h5>

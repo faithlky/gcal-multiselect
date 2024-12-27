@@ -2,7 +2,6 @@ let selectedCalendarId = "";
 let isExtensionActive = false;
 let authToken = null;
 
-
 chrome.runtime.onInstalled.addListener(() => {
     chrome.action.setBadgeText({ text: "OFF" });
     chrome.storage.sync.set({ isExtensionActive: false });
@@ -10,7 +9,6 @@ chrome.runtime.onInstalled.addListener(() => {
         selectedCalendarId = data.selectedCalendarId || "";
     });
 });
-
 
 chrome.runtime.onStartup.addListener(() => {
     chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
@@ -20,7 +18,6 @@ chrome.runtime.onStartup.addListener(() => {
         selectedCalendarId = data.selectedCalendarId || "";
     });
 });
-
 
 // When page is reloaded
 chrome.webNavigation.onCommitted.addListener(() => {
@@ -41,11 +38,12 @@ chrome.webNavigation.onCommitted.addListener(() => {
     url: [{ hostContains: "calendar.google.com/calendar" }]
 });
 
-
-// When user switches to a different week/day, which changes the tab's url
+// When user switches to a different week/day, which changes the tab's url, or enters GCal from the current tab
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
+        handleSwitchToCalendarTab(tabId);
         chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
+            const { isExtensionActive = false, selectedCalendarId = "" } = data;
             if (isExtensionActive && selectedCalendarId) {
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     chrome.tabs.sendMessage(tabs[0].id, { action: "deselectAllEvents", newSelectedCalendarId: data.selectedCalendarId })
@@ -55,10 +53,18 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
 });
 
+// When user switches from a different tab to the GCal tab
+chrome.tabs.onActivated.addListener((activeInfo) => {
+    chrome.tabs.get(activeInfo.tabId, (tab) => {
+        if (tab.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
+            handleSwitchToCalendarTab(tab.id);
+        }
+    });
+});
 
 function checkAndInjectContentScript(tabId) {
     return new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(tabId, { action: "isContentScriptRunning"}, (response) => {
+        chrome.tabs.sendMessage(tabId, { action: "isContentScriptRunning" }, (response) => {
             if (chrome.runtime.lastError || !response || !response.running) {
                 chrome.scripting.executeScript({
                     target: { tabId: tabId },
@@ -80,6 +86,15 @@ function checkAndInjectContentScript(tabId) {
     })
 }
 
+function handleSwitchToCalendarTab(tabId) {
+    chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
+        const { isExtensionActive = false, selectedCalendarId = "" } = data;
+        checkAndInjectContentScript(tabId).then(() => {
+            chrome.tabs.sendMessage(tabId, { action: "toggleExtensionState", active: isExtensionActive });
+            chrome.tabs.sendMessage(tabId, { action: "updateSelectedCalendarId", newSelectedCalendarId: selectedCalendarId });
+        }).catch((error) => console.error("Failed to inject content script:", error));
+    });
+}
 
 function getAuthToken() {
     return new Promise((resolve, reject) => {
@@ -97,7 +112,6 @@ function getAuthToken() {
         }
     });
 }
-
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
@@ -309,34 +323,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ error: error.message });
         });
         return true;
-    }
-});
-
-
-function handleSwitchToCalendarTab(tabId, url) {
-    if (url.includes("calendar.google.com")) {
-        chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
-            const { isExtensionActive = false, selectedCalendarId = "" } = data;
-            checkAndInjectContentScript(tabId).then(() => {
-                chrome.tabs.sendMessage(tabId, { action: "toggleExtensionState", active: isExtensionActive });
-                chrome.tabs.sendMessage(tabId, { action: "updateSelectedCalendarId", newSelectedCalendarId: selectedCalendarId });
-            }).catch((error) => console.error("Failed to inject content script:", error));
-        });
-    }
-}
-
-
-chrome.tabs.onActivated.addListener((activeInfo) => {
-    chrome.tabs.get(activeInfo.tabId, (tab) => {
-        if (tab.url) {
-            handleSwitchToCalendarTab(tab.id, tab.url);
-        }
-    });
-});
-
-// Listener for tab updates
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === "complete" && tab.url) {
-        handleSwitchToCalendarTab(tabId, tab.url);
     }
 });
