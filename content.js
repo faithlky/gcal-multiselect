@@ -226,11 +226,18 @@ function handleKeyDown(e) {
                 return;
             }
         });
-    } else if (e.key === "Delete") {
-        selectedEvents.forEach(({ id }) => {
-            deleteEvent(id);
+    } else if (e.key === "Delete" && (e.ctrlKey || e.metaKey)) {
+        const deletePromises = selectedEvents.map(({ id }) => deleteEvent(id));
+        Promise.all(deletePromises).then(() => {
+            alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
+        }).catch(error => {
+            console.error("Error deleting events:", error);
         });
-        alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
+
+        // selectedEvents.forEach(({ id }) => {
+        //     deleteEvent(id);
+        // });
+        // alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
     }
 }
 
