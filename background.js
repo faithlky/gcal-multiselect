@@ -3,7 +3,7 @@ let isExtensionActive = false;
 let authToken = null;
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.action.setBadgeText({ text: "OFF" });
+    chrome.action.setIcon({ path: "/images/icon-16-off.png" });
     chrome.storage.sync.set({ isExtensionActive: false });
     chrome.storage.sync.get("selectedCalendarId", (data) => {
         selectedCalendarId = data.selectedCalendarId || "";
@@ -13,8 +13,8 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
     chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
         isExtensionActive = data.isExtensionActive || false;
-        let badgeText = isExtensionActive ? "ON" : "OFF";
-        chrome.action.setBadgeText({ text: badgeText });
+        let iconPath = isExtensionActive ? "/images/icon-16.png" : "/images/icon-16-off.png";
+        chrome.action.setIcon({ path: iconPath });
         selectedCalendarId = data.selectedCalendarId || "";
     });
 });
@@ -117,8 +117,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     if (request.action === "toggleExtensionState") {
         isExtensionActive = request.active;
-        let badgeText = isExtensionActive ? "ON" : "OFF";        
-        chrome.action.setBadgeText({ text: badgeText });
+        let iconPath = isExtensionActive ? "/images/icon-16.png" : "/images/icon-16-off.png";
+        chrome.action.setIcon({ path: iconPath });
         chrome.storage.sync.set({ isExtensionActive });
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0].url.includes("calendar.google.com")) {
@@ -136,13 +136,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 chrome.tabs.sendMessage(tabs[0].id, { action: "updateSelectedCalendarId", newSelectedCalendarId });
             }
         });
-        // const listener = (contentRequest) => {
-        //     if (contentRequest.action === "deselectedAllEvents") {
-        //         selectedCalendarId = contentRequest.selectedCalendarId;
-        //         chrome.runtime.onMessage.removeListener(listener);
-        //     }
-        // };
-        // chrome.runtime.onMessage.addListener(listener);
         return true;
     }
 
@@ -224,104 +217,185 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     
     if (request.action === "updateEvent") {
-        const { eventId, newStartTime, newEndTime } = request;
-        getAuthToken().then((token) => {
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
-            const eventPatch = {
-                start: {
-                    dateTime: newStartTime
-                },
-                end: {
-                    dateTime: newEndTime
-                }
-            };
-            fetch(url, {
-                method: "PATCH",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(eventPatch)
-            })
-            .then(response => response.json())
-            .then(event => {
-                sendResponse({ event });
-            })
-            .catch(error => {
-                console.error("Error updating event:", error);
-                sendResponse({ error: error.toString() });
-            });
-            return true;
-        })
-        .catch(error => {
-            console.error("Error getting auth token:", error);
-            sendResponse({ error: error.message });
-        });
+        handleUpdateEvent(request, sendResponse);
         return true;
     }
 
     if (request.action === "deleteEvent") {
-        const eventId = request.eventId;
-        getAuthToken().then((token) => {
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
-            fetch(url, {
-                method: "DELETE",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(error => {
-                        console.error("Error response from API:", error);
-                        throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
-                    });
-                }
-                sendResponse({ success: true });
-            })
-            .catch(error => {
-                console.error("Error deleting event:", error);
-                sendResponse({ error: error.toString() });
-            });
-            return true;
-        })
-        .catch(error => {
-            console.error("Error getting auth token:", error);
-            sendResponse({ error: error.message });
-        });
+        handleDeleteEvent(request, sendResponse);
         return true;
     }
 
     if (request.action === "deleteRecurringEventInstance") {
-        const instanceId = request.instanceId;
-        getAuthToken().then((token) => {
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${instanceId}`;
-            const eventPatch = {
-                status: "cancelled"
-            };
-            fetch(url, {
-                method: "PATCH",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(eventPatch)
-            })
-            .then(response => response.json())
-            .then(event => {
-                sendResponse({ event });
-            })
-            .catch(error => {
-                console.error("Error cancelling event:", error);
-                sendResponse({ error: error.toString() });
-            });
-            return true;
-        })
-        .catch(error => {
-            console.error("Error getting auth token:", error);
-            sendResponse({ error: error.message });
-        });
+        handleDeleteRecurringEventInstance(request, sendResponse);
         return true;
     }
 });
+
+
+// updateEvent
+
+function handleUpdateEvent(request, sendResponse) {
+    updateEventApiCall(request)
+        .then(() => {
+            sendResponse({ success: true });
+        })
+        .catch(error => {
+            console.error("Error updating event:", error);
+            sendResponse({ error: error.toString() });
+        });
+    return true;
+}
+
+async function updateEventApiCall(request) {
+    const { eventId, newStartTime, newEndTime } = request;
+    try {
+        const token = await getAuthToken();
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
+        const eventPatch = {
+            start: {
+                dateTime: newStartTime
+            },
+            end: {
+                dateTime: newEndTime
+            }
+        };
+        const response = await fetch(url, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(eventPatch)
+        });
+        if (!response.ok) {
+            if (response.status === 403) {
+                retry(
+                    () => updateEventApiCall(eventId)
+                );
+            }
+        }
+        return response;
+    }
+    catch (error) {
+        console.error("Error in updateEventApiCall:", error);
+        throw error;
+    }
+}
+
+
+// deleteEvent
+
+function handleDeleteEvent(request, sendResponse) {
+    const eventId = request.eventId;
+    deleteEventApiCall(eventId)
+        .then(() => {
+            sendResponse({ success: true });
+        })
+        .catch(error => {
+            console.error("Error deleting event:", error);
+            sendResponse({ error: error.toString() });
+        });
+    return true;
+}
+
+async function deleteEventApiCall(eventId) {
+    try {
+        const token = await getAuthToken();
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+        if (!response.ok) {
+            if (response.status === 403) {
+                retry(
+                    () => deleteEventApiCall(eventId)
+                );
+            }
+        }
+        return response;
+    }
+    catch (error) {
+        console.error("Error in deleteEventApiCall:", error);
+        throw error;
+    }
+}
+
+
+// deleteRecurringEventInstance
+
+function handleDeleteRecurringEventInstance(request, sendResponse) {
+    const instanceId = request.instanceId;
+    deleteRecurringEventInstanceApiCall(instanceId)
+    .then(() => {
+        sendResponse({ success: true });
+    })
+    .catch(error => {
+        console.error("Error deleting recurring event instance:", error);
+        sendResponse({ error: error.toString() });
+    });
+    return true;
+}
+
+async function deleteRecurringEventInstanceApiCall(instanceId) {
+    try {
+        const token = await getAuthToken();
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${instanceId}`;
+        const eventPatch = {
+            status: "cancelled"
+        };
+        const response = await fetch(url, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(eventPatch)
+        });
+        if (!response.ok) {
+            if (response.status === 403) {
+                retry(
+                    () => deleteRecurringEventInstanceApiCall(instanceId)
+                );
+            }
+        }
+        return response;
+    }
+    catch (error) {
+        console.error("Error in deleteRecurringEventInstanceApiCall:", error);
+        throw error;
+    }
+}
+
+
+// Retry with exponential backoff https://bpaulino.com/entries/retrying-api-calls-with-exponential-backoff
+
+function retry(promiseFn) {
+    const maxRetries = 4;
+    async function retryWithBackoff(retries) {
+        try {
+            if (retries > 0) {
+                const timeToWait = 2 ** retries * 100;
+                console.log(`waiting for ${timeToWait}ms...`);
+                await waitFor(timeToWait);
+            }
+            return await promiseFn();
+        } catch (error) {
+            if (retries < maxRetries) {
+                return retryWithBackoff(retries + 1);
+            } else {
+                console.warn("Max retries reached. Bubbling the error up");
+                throw error;
+            }
+        }
+    }
+    return retryWithBackoff(0);
+}
+
+function waitFor(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}

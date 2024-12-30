@@ -45,7 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedCalendarId = selectCalendarSelect.value;
         chrome.storage.sync.set({ selectedCalendarId }, () => {
             chrome.runtime.sendMessage({ action: "updateSelectedCalendarId", selectedCalendarId });
-            alert("Calendar selected.");
         });
     });
 

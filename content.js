@@ -226,18 +226,14 @@ function handleKeyDown(e) {
                 return;
             }
         });
-    } else if (e.key === "Delete" && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === "Delete") {
+        alert("Deleting selected events. This may take a moment. Please wait for an alert confirming completion before refreshing the page.");
         const deletePromises = selectedEvents.map(({ id }) => deleteEvent(id));
         Promise.all(deletePromises).then(() => {
             alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
         }).catch(error => {
             console.error("Error deleting events:", error);
         });
-
-        // selectedEvents.forEach(({ id }) => {
-        //     deleteEvent(id);
-        // });
-        // alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
     }
 }
 
@@ -329,59 +325,74 @@ function toggleSelection(element) {
 }
 
 
-function updateEvent(eventId, newStartTime, newEndTime) {
-    chrome.runtime.sendMessage({
-        action: "updateEvent",
-        eventId, 
-        newStartTime: newStartTime.toISOString(), 
-        newEndTime: newEndTime.toISOString()
-    }, (response) => {
-        if (response.error) {
-            console.error("Error updating event:", response.error);
-        }
+function updateEvent(eventId, newStartTime, newEndTime, retries = 0) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: "updateEvent",
+            eventId,
+            newStartTime: newStartTime.toISOString(),
+            newEndTime: newEndTime.toISOString()
+        }, (response) => {
+            if (response.error) {
+                if (response.error.code === 403 && response.error.errors[0].reason === "rateLimitExceeded") {
+                    retryWithExponentialBackoff(attempts).then(() => {
+                        updateEvent(eventId, newStartTime, newEndTime, retries + 1).then(resolve).catch(reject);
+                    });
+                } else {
+                    console.error("Error updating event:", response.error);
+                    reject(response.error);
+                }
+            } else {
+                toggleSelection(selectedEvents.find(event => event.id === eventId).element);
+                resolve();
+            }
+        });
     });
-    toggleSelection(selectedEvents.find(event => event.id === eventId).element);
 }
 
 
-// function deleteEvent(eventId) {
-//     chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
-//         if (response.error) {
-//             console.error("Error deleting event:", response.error);
-//         }
-//     });
-//     const index = selectedEvents.findIndex(event => event.id === eventId);
-//     selectedEvents.splice(index, 1);
-//     delete initialEventTimes[eventId];
-// }
-
-
 function deleteEvent(eventId) {
-    fetchEventDetails(eventId).then(event => {
+    return fetchEventDetails(eventId).then(event => {
         if (event.recurringEventId) {
             // If the event is a recurring event, change the status of the instance to "cancelled"
-            chrome.runtime.sendMessage({ action: "deleteRecurringEventInstance", instanceId: eventId }, (response) => {
-                if (response.error) {
-                    console.error("Error deleting recurring event instance:", response.error);
-                }
+            return new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({ action: "deleteRecurringEventInstance", instanceId: eventId }, (response) => {
+                    if (response.error) {
+                        console.error("Error deleting recurring event instance:", response.error);
+                        reject(response.error);
+                    } else {
+                        removeEventFromSelectedEvents(eventId);
+                        resolve();
+                    }
+                });
             });
         } else {
             // If the event is not a recurring event, delete the event itself
-            chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
-                if (response.error) {
-                    console.error("Error deleting event:", response.error);
-                }
+            return new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
+                    if (response.error) {
+                        console.error("Error deleting event:", response.error);
+                        reject(response.error);
+                    } else {
+                        removeEventFromSelectedEvents(eventId);
+                        resolve();
+                    }
+                });
             });
-        }
-        // Remove the event from the selected events list
-        const index = selectedEvents.findIndex(event => event.id === eventId);
-        if (index !== -1) {
-            selectedEvents.splice(index, 1);
-            delete initialEventTimes[eventId];
         }
     }).catch(error => {
         console.error("Error fetching event details:", error);
+        throw error;
     });
+}
+
+
+function removeEventFromSelectedEvents(eventId) {
+    const index = selectedEvents.findIndex(event => event.id === eventId);
+    if (index !== -1) {
+        selectedEvents.splice(index, 1);
+        delete initialEventTimes[eventId];
+    }
 }
 
 
