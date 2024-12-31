@@ -5,13 +5,11 @@ let selectedEvents = [];
 let initialEventTimes = {};
 let observer = null;
 
-
 chrome.storage.sync.get("selectedCalendarId", (data) => {
     if (data.selectedCalendarId) {
         selectedCalendarId = data.selectedCalendarId;
     }
 });
-
 
 // Add event listeners if the extension is already active when the page loads
 chrome.storage.sync.get("isExtensionActive", (data) => {
@@ -24,7 +22,6 @@ chrome.storage.sync.get("isExtensionActive", (data) => {
     }
 });
 
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "isContentScriptRunning") {
@@ -35,11 +32,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         alert(request.message);
     }
 
-    if (request.action === "updateSelectedCalendarId" || request.action === "deselectAllEvents") {
+    if (request.action === "updateSelectedCalendarId") {
+        console.log("selectedEvents:", selectedEvents);
         const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
         Promise.all(deselectPromises).then(() => {
             selectedCalendarId = request.newSelectedCalendarId;
             chrome.runtime.sendMessage({ action: "deselectedAllEvents", selectedCalendarId });
+            console.log("updateSelectedCalendarId selectedEvents after deselection:", selectedEvents);
+        }).catch(error => {
+            console.error("Error deselecting events:", error);
+        });
+    }
+
+    if (request.action === "deselectAllEvents") {
+        console.log("selectedEvents:", selectedEvents);
+        const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
+        Promise.all(deselectPromises).then(() => {
+            console.log("deselectAllEvents selectedEvents after deselection:", selectedEvents);
         }).catch(error => {
             console.error("Error deselecting events:", error);
         });
@@ -69,7 +78,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-
 function addEventListeners() {
     if (!listenersAdded) {
         document.addEventListener("mousedown", handleMouseDown);
@@ -78,7 +86,6 @@ function addEventListeners() {
     }
 }
 
-
 function removeEventListeners() {
     if (listenersAdded) {
         document.removeEventListener("mousedown", handleMouseDown);
@@ -86,7 +93,6 @@ function removeEventListeners() {
         listenersAdded = false;
     }
 }
-
 
 function handleMouseDown(e) {
     if (!isExtensionActive) return;
@@ -139,32 +145,6 @@ function handleMouseDown(e) {
         }
     }
 }
-
-
-function sortInitialEventTimes() {
-    const initialEventTimesArray = Object.entries(initialEventTimes);
-    const sortedArray = initialEventTimesArray.sort((a, b) => {
-        const startTimeA = a[1].start.getTime();
-        const startTimeB = b[1].start.getTime();
-        return startTimeA - startTimeB;
-    });
-    return sortedArray;
-}
-
-
-function getEventsList(timeMin, timeMax) {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ action: "getEventsList", timeMin, timeMax }, (response) => {
-            if (response.error) {
-                console.error("Error fetching events list:", response.error);
-                reject(response.error);
-            } else {
-                resolve(response.events);
-            }
-        });
-    });
-}
-
 
 function handleKeyDown(e) {
     if (!isExtensionActive || selectedEvents.length === 0) return;
@@ -237,6 +217,28 @@ function handleKeyDown(e) {
     }
 }
 
+function sortInitialEventTimes() {
+    const initialEventTimesArray = Object.entries(initialEventTimes);
+    const sortedArray = initialEventTimesArray.sort((a, b) => {
+        const startTimeA = a[1].start.getTime();
+        const startTimeB = b[1].start.getTime();
+        return startTimeA - startTimeB;
+    });
+    return sortedArray;
+}
+
+function getEventsList(timeMin, timeMax) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "getEventsList", timeMin, timeMax }, (response) => {
+            if (response.error) {
+                console.error("Error fetching events list:", response.error);
+                reject(response.error);
+            } else {
+                resolve(response.events);
+            }
+        });
+    });
+}
 
 function fetchEventId(element) {
     /* Note: This is how to get the event ID from the element! 
@@ -270,7 +272,6 @@ function fetchEventId(element) {
     return eventId;
 }
 
-
 function fetchEventDetails(eventId) {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({ action: "getEventDetails", eventId }, (response) => {
@@ -284,7 +285,6 @@ function fetchEventDetails(eventId) {
     });
 }
 
-
 function toggleSelection(element) {
     return new Promise((resolve, reject) => {
         let eventId = fetchEventId(element);
@@ -292,30 +292,25 @@ function toggleSelection(element) {
             resolve();
             return;
         };
-        
         fetchEventDetails(eventId).then(event => {
             if (!event.start.dateTime) {
                 console.log("All-day event detected. Ignoring selection.");
                 resolve();
                 return;
             }
-    
             const index = selectedEvents.findIndex(event => event.id === eventId);
             if (index === -1) {
                 selectedEvents.push({ id: eventId, element });
                 element.style.border = "2px solid black";
-                
                 initialEventTimes[eventId] = {
                     start: new Date(event.start.dateTime),
                     end: new Date(event.end.dateTime),
                 };
-    
             } else {
                 selectedEvents.splice(index, 1);
                 element.style.border = "";
                 delete initialEventTimes[eventId];
             }
-
             resolve();    
         }).catch(error => {
             console.error("Error fetching event details:", error);
@@ -323,7 +318,6 @@ function toggleSelection(element) {
         });
     });
 }
-
 
 function updateEvent(eventId, newStartTime, newEndTime, retries = 0) {
     return new Promise((resolve, reject) => {
@@ -349,7 +343,6 @@ function updateEvent(eventId, newStartTime, newEndTime, retries = 0) {
         });
     });
 }
-
 
 function deleteEvent(eventId) {
     return fetchEventDetails(eventId).then(event => {
@@ -386,7 +379,6 @@ function deleteEvent(eventId) {
     });
 }
 
-
 function removeEventFromSelectedEvents(eventId) {
     const index = selectedEvents.findIndex(event => event.id === eventId);
     if (index !== -1) {
@@ -394,7 +386,6 @@ function removeEventFromSelectedEvents(eventId) {
         delete initialEventTimes[eventId];
     }
 }
-
 
 function observeDOMChanges() {
     const observer = new MutationObserver((mutations) => {
@@ -407,7 +398,6 @@ function observeDOMChanges() {
             }
         });
     });
-
     observer.observe(document.body, {
         attributes: true,
         childList: true,

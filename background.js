@@ -1,6 +1,7 @@
 let selectedCalendarId = "";
 let isExtensionActive = false;
 let authToken = null;
+let previousCalendarUrl = {};
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.action.setIcon({ path: "/images/icon-16-off.png" });
@@ -16,49 +17,6 @@ chrome.runtime.onStartup.addListener(() => {
         let iconPath = isExtensionActive ? "/images/icon-16.png" : "/images/icon-16-off.png";
         chrome.action.setIcon({ path: iconPath });
         selectedCalendarId = data.selectedCalendarId || "";
-    });
-});
-
-// When page is reloaded
-chrome.webNavigation.onCommitted.addListener(() => {
-    chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
-        if (isExtensionActive) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0].id) {
-                    let promise = checkAndInjectContentScript(tabs[0].id);
-                    promise.then(
-                        chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive })
-                    )
-                }
-            });
-        }
-        selectedCalendarId = data.selectedCalendarId || "";
-    });
-}, {
-    url: [{ hostContains: "calendar.google.com/calendar" }]
-});
-
-// When user switches to a different week/day, which changes the tab's url, or enters GCal from the current tab
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
-        handleSwitchToCalendarTab(tabId);
-        chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
-            const { isExtensionActive = false, selectedCalendarId = "" } = data;
-            if (isExtensionActive && selectedCalendarId) {
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    chrome.tabs.sendMessage(tabs[0].id, { action: "deselectAllEvents", newSelectedCalendarId: data.selectedCalendarId })
-                });
-            }
-        });
-    }
-});
-
-// When user switches from a different tab to the GCal tab
-chrome.tabs.onActivated.addListener((activeInfo) => {
-    chrome.tabs.get(activeInfo.tabId, (tab) => {
-        if (tab.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
-            handleSwitchToCalendarTab(tab.id);
-        }
     });
 });
 
@@ -86,12 +44,60 @@ function checkAndInjectContentScript(tabId) {
     })
 }
 
-function handleSwitchToCalendarTab(tabId) {
+// When page is reloaded
+chrome.webNavigation.onCommitted.addListener(() => {
+    chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
+        if (isExtensionActive) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0].id) {
+                    let promise = checkAndInjectContentScript(tabs[0].id);
+                    promise.then(
+                        chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive })
+                    )
+                }
+            });
+        }
+        selectedCalendarId = data.selectedCalendarId || "";
+    });
+}, {
+    url: [{ hostContains: "calendar.google.com/calendar" }]
+});
+
+// When user switches to a different week/day, which changes the tab's url, or enters GCal from the current tab
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    // console.log("onUpdated triggered:", { tabId, changeInfo, tab });
+    if (changeInfo.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
+        console.log("onUpdated URL check passed for tab:", tabId, "URL:", changeInfo.url);
+        if (previousCalendarUrl[tabId] !== changeInfo.url) {
+            console.log("URL changed for tab:", tabId, "Old URL:", previousCalendarUrl[tabId], "New URL:", changeInfo.url);
+            previousCalendarUrl[tabId] = changeInfo.url;
+            handleSwitchToCalendarTab(tabId, changeInfo.url);
+        }
+    }
+});
+
+// When user switches from a different tab to the GCal tab
+chrome.tabs.onActivated.addListener((activeInfo) => {
+    console.log("onActivated triggered:", { activeInfo });
+    chrome.tabs.get(activeInfo.tabId, (tab) => {
+        console.log("onActivated tab details:", tab);
+        if (tab.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
+            handleSwitchToCalendarTab(tab.id);
+        }
+    });
+});
+
+function handleSwitchToCalendarTab(tabId, newUrl = null) {
     chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
         const { isExtensionActive = false, selectedCalendarId = "" } = data;
         checkAndInjectContentScript(tabId).then(() => {
-            chrome.tabs.sendMessage(tabId, { action: "toggleExtensionState", active: isExtensionActive });
-            chrome.tabs.sendMessage(tabId, { action: "updateSelectedCalendarId", newSelectedCalendarId: selectedCalendarId });
+            if (newUrl) {
+                console.log("Sending deselectAllEvents message for new URL:", newUrl);
+                chrome.tabs.sendMessage(tabId, { action: "deselectAllEvents" });
+            }
+            console.log("Sending toggleExtensionState and updateSelectedCalendarId messages.");
+            // chrome.tabs.sendMessage(tabId, { action: "toggleExtensionState", active: isExtensionActive });
+            // chrome.tabs.sendMessage(tabId, { action: "updateSelectedCalendarId", newSelectedCalendarId: selectedCalendarId });
         }).catch((error) => console.error("Failed to inject content script:", error));
     });
 }
