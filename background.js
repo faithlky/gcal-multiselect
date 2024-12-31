@@ -65,42 +65,23 @@ chrome.webNavigation.onCommitted.addListener(() => {
 
 // When user switches to a different week/day, which changes the tab's url, or enters GCal from the current tab
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    // console.log("onUpdated triggered:", { tabId, changeInfo, tab });
     if (changeInfo.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
-        console.log("onUpdated URL check passed for tab:", tabId, "URL:", changeInfo.url);
         if (previousCalendarUrl[tabId] !== changeInfo.url) {
-            console.log("URL changed for tab:", tabId, "Old URL:", previousCalendarUrl[tabId], "New URL:", changeInfo.url);
             previousCalendarUrl[tabId] = changeInfo.url;
-            handleSwitchToCalendarTab(tabId, changeInfo.url);
+            checkAndInjectContentScript(tabId);
+            chrome.tabs.sendMessage(tabId, { action: "deselectAllEvents" });
         }
     }
 });
 
 // When user switches from a different tab to the GCal tab
 chrome.tabs.onActivated.addListener((activeInfo) => {
-    console.log("onActivated triggered:", { activeInfo });
     chrome.tabs.get(activeInfo.tabId, (tab) => {
-        console.log("onActivated tab details:", tab);
         if (tab.url && tab.url.startsWith("https://calendar.google.com/calendar/")) {
-            handleSwitchToCalendarTab(tab.id);
+            checkAndInjectContentScript(tab.id);
         }
     });
 });
-
-function handleSwitchToCalendarTab(tabId, newUrl = null) {
-    chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
-        const { isExtensionActive = false, selectedCalendarId = "" } = data;
-        checkAndInjectContentScript(tabId).then(() => {
-            if (newUrl) {
-                console.log("Sending deselectAllEvents message for new URL:", newUrl);
-                chrome.tabs.sendMessage(tabId, { action: "deselectAllEvents" });
-            }
-            console.log("Sending toggleExtensionState and updateSelectedCalendarId messages.");
-            // chrome.tabs.sendMessage(tabId, { action: "toggleExtensionState", active: isExtensionActive });
-            // chrome.tabs.sendMessage(tabId, { action: "updateSelectedCalendarId", newSelectedCalendarId: selectedCalendarId });
-        }).catch((error) => console.error("Failed to inject content script:", error));
-    });
-}
 
 function getAuthToken() {
     return new Promise((resolve, reject) => {
