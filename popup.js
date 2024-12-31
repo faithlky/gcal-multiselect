@@ -54,10 +54,11 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Please select a calendar to remove.");
             return;
         }
-        chrome.storage.sync.get("calendars", (data) => {
+        chrome.storage.sync.get(["calendars", "selectedCalendarId"], (data) => {
             let calendars = data.calendars || [];
             calendars = calendars.filter(calendar => calendar.id !== calendarIdToRemove);
-            chrome.storage.sync.set({ calendars }, () => {
+            const updatedSelectedCalendarId = (calendarIdToRemove === data.selectedCalendarId) ? null : data.selectedCalendarId;
+            chrome.storage.sync.set({ calendars, selectedCalendarId: updatedSelectedCalendarId }, () => {
                 loadCalendars(calendars);
                 alert("Calendar removed.");
             });
@@ -65,21 +66,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function loadCalendars(calendars) {
-        selectCalendarSelect.innerHTML = '<option disabled="" selected="">Add a calendar below first</option>';
-        removeCalendarSelect.innerHTML = '<option disabled="" selected="">Select calendar to remove</option>';
-        calendars.forEach((calendar) => {
-            const selectOption = document.createElement("option");
-            selectOption.value = calendar.id;
-            selectOption.innerText = `${calendar.name} (${calendar.id})`;
-            selectCalendarSelect.appendChild(selectOption);
-            
-            const removeOption = document.createElement("option");
-            removeOption.value = calendar.id;
-            removeOption.innerText = `${calendar.name} (${calendar.id})`;
-            removeCalendarSelect.appendChild(removeOption);
-        });
+        selectCalendarSelect.innerHTML = '<option disabled selected>Select a calendar</option>';
+        removeCalendarSelect.innerHTML = '<option disabled selected>Select calendar to remove</option>';
+
+        if (calendars.length > 0) {
+            calendars.forEach((calendar) => {
+                const selectOption = document.createElement("option");
+                selectOption.value = calendar.id;
+                selectOption.innerText = `${calendar.name} (${calendar.id})`;
+                selectCalendarSelect.appendChild(selectOption);
+                
+                const removeOption = document.createElement("option");
+                removeOption.value = calendar.id;
+                removeOption.innerText = `${calendar.name} (${calendar.id})`;
+                removeCalendarSelect.appendChild(removeOption);
+            });
+        } else {
+            selectCalendarSelect.querySelector("option:disabled").innerHTML = "Add a calendar below first";
+            removeCalendarSelect.querySelector("option:disabled").innerHTML = "No calendars to remove";
+        }
+
         chrome.storage.sync.get("selectedCalendarId", (data) => {
-            selectCalendarSelect.value = data.selectedCalendarId || "";
+            if (data.selectedCalendarId) {
+                selectCalendarSelect.value = data.selectedCalendarId;
+            } else {
+                selectCalendarSelect.querySelector("option:disabled").selected = true;
+            }
         });
     }
 });

@@ -359,7 +359,7 @@ async function deleteRecurringEventInstanceApiCall(instanceId) {
 }
 
 
-// Retry with exponential backoff https://bpaulino.com/entries/retrying-api-calls-with-exponential-backoff
+// Retry with exponential backoff, based on https://bpaulino.com/entries/retrying-api-calls-with-exponential-backoff
 
 function retry(promiseFn) {
     const maxRetries = 4;

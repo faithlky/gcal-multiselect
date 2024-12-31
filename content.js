@@ -5,6 +5,8 @@ let selectedEvents = [];
 let initialEventTimes = {};
 let observer = null;
 
+// Note: Refresh the GCal tab (if it's already open) after reloading the extension to avoid "Error: Extension context invalidated"
+
 chrome.storage.sync.get("selectedCalendarId", (data) => {
     if (data.selectedCalendarId) {
         selectedCalendarId = data.selectedCalendarId;
@@ -33,25 +35,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "updateSelectedCalendarId") {
-        console.log("selectedEvents:", selectedEvents);
-        const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
+        const deselectPromises = selectedEvents.forEach(({ element }) => toggleSelection(element));
         Promise.all(deselectPromises).then(() => {
             selectedCalendarId = request.newSelectedCalendarId;
             chrome.runtime.sendMessage({ action: "deselectedAllEvents", selectedCalendarId });
-            console.log("updateSelectedCalendarId selectedEvents after deselection:", selectedEvents);
         }).catch(error => {
             console.error("Error deselecting events:", error);
         });
     }
 
     if (request.action === "deselectAllEvents") {
-        console.log("selectedEvents:", selectedEvents);
-        const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
-        Promise.all(deselectPromises).then(() => {
-            console.log("deselectAllEvents selectedEvents after deselection:", selectedEvents);
-        }).catch(error => {
-            console.error("Error deselecting events:", error);
-        });
+        selectedEvents.forEach(({ element }) => toggleSelection(element));
     }
 
     if (request.action === "toggleExtensionState") {
@@ -62,7 +56,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 observeDOMChanges();
             }
         } else {
-            const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
+            const deselectPromises = selectedEvents.forEach(({ element }) => toggleSelection(element));
             Promise.all(deselectPromises).then(() => {
                 removeEventListeners();
                 selectedEvents = [];

@@ -9,6 +9,11 @@ strong, h1, h4, h5 {
     font-weight: 700;
 }
 
+/* This doesn't work :( */
+select:invalid {
+    color: #c1c0c0 !important;
+}
+
 .title {
     display: flex;
     justify-content: space-between;
@@ -33,7 +38,7 @@ strong, h1, h4, h5 {
     gap: 0.5em;
 }
 
-/* Enable extension toggle switch */
+/* Enable extension toggle switch, based on https://www.w3schools.com/howto/howto_css_switch.asp */
 
 #enableExtension {
     display: flex;

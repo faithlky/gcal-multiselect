@@ -22,11 +22,8 @@
         </div>
         <br>
         <label for="selectCalendar">Select your calendar: </label>
-        <select name="selectCalendar" id="selectCalendarSelect" class="form-select">
-            <option disabled="" selected="">Add a calendar below first</option>
-            <!-- Why isn't this disabled option visible when it's selected?
-             Also, can we make it such that it says "Add a calendar below first" when there are no other options, 
-             and change to "Select a calendar" when there are other options? -->
+        <select name="selectCalendar" id="selectCalendarSelect" class="form-select" required>
+            <option disabled selected>Select a calendar</option>
         </select>
     </div>
 
@@ -43,8 +40,8 @@
 
         <label for="removeCalendar">Remove a calendar from this extension's list: </label>
         <div id="removeCalendarDiv">
-            <select name="removeCalendar" id="removeCalendarSelect" class="form-select">
-                <option disabled="" selected="">Select calendar to remove</option>
+            <select name="removeCalendar" id="removeCalendarSelect" class="form-select" required>
+                <option disabled selected>Select calendar to remove</option>
             </select>
             <button id="removeCalendarButton" class="btn btn-outline-danger">Remove</button>    
         </div>
@@ -54,7 +51,7 @@
     
         <h5>Instructions</h5>
         <ol>
-            <li class="mainLi"><strong>Set your calendar ID: </strong>The calendar ID for your primary calendar (the one titled your name) is just your gmail address. If you are using a different calendar, you can find its calendar ID in the calendar settings.</li>
+            <li class="mainLi"><strong>Add and select your calendar: </strong>The calendar ID for your primary calendar (the one titled your name) is just your gmail address. If you are using a different calendar, you can find its calendar ID in the calendar settings.</li>
             <li class="mainLi"><strong>Select the events to move: </strong>CTRL/⌘ + CLICK to select individual (non "All day") events. If you have a block of back-to-back events you'd like to move, select the first event in the block, then SHIFT + CLICK the last event to select all the events in between as well.</li>
             <li class="mainLi">
                 <ul>
