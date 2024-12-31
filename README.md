@@ -1,4 +1,4 @@
-# Google Calendar Event Multiselect Mode
+# Google Calendar Event Multiselect
 
 ## Objective:
 This is meant for people who use Google Calendar for time boxing.
@@ -16,7 +16,7 @@ NOTE: Please tell me if you want to test this and I'll add your email to the tes
 1. Download the gcal-multiselect folder and its contents on your computer.
 2. Go to chrome://extensions/ in Google Chrome and turn on Developer Mode at the top right. Click Load Unpacked and select the gcal-multiselect folder.
 3. Go to calendar.google.com and click the extension icon to open the popup.
-4. _Add and select your calendar ID:_ The calendar ID for your primary calendar (the one titled your name) is just your gmail address. If you are using a different calendar, you can find its calendar ID in the calendar settings.
+4. _Add and select your calendar in the extension popup:_ The calendar ID for your primary calendar (the one titled your name) is just your gmail address. If you are using a different calendar, you can find its calendar ID in the calendar settings.
 5. _Select the events to move or delete:_ CTRL/⌘ + CLICK to select individual (non "All day") events. If you have a block of back-to-back events you'd like to move, select the first event in the block, then SHIFT + CLICK the last event to select all the events in between as well.
 6.  
     * _Move the events:_ Move one of the selected events, then press **CTRL/⌘ + ENTER** to move the rest.

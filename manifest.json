@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Google Calendar Event Multiselector",
+    "name": "Google Calendar Event Multiselect",
     "version": "1.0",
     "description": "Select and bulk move/delete multiple Google Calendar events.",
     "permissions": [
