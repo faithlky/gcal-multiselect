@@ -116,7 +116,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
     }
 
-    if (request.action === "updateSelectedCalendarId") {
+    if (request.action === "selectedCalendarChanged") {
         const newSelectedCalendarId = request.selectedCalendarId;
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0].url.includes("calendar.google.com")) {

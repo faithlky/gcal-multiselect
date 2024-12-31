@@ -35,7 +35,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === "updateSelectedCalendarId") {
-        const deselectPromises = selectedEvents.forEach(({ element }) => toggleSelection(element));
+        const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
         Promise.all(deselectPromises).then(() => {
             selectedCalendarId = request.newSelectedCalendarId;
             chrome.runtime.sendMessage({ action: "deselectedAllEvents", selectedCalendarId });
@@ -56,7 +56,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 observeDOMChanges();
             }
         } else {
-            const deselectPromises = selectedEvents.forEach(({ element }) => toggleSelection(element));
+            const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
             Promise.all(deselectPromises).then(() => {
                 removeEventListeners();
                 selectedEvents = [];
