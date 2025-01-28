@@ -374,7 +374,6 @@ async function deleteEvent(eventId) {
             // If the event is a recurring event, change the status of the instance to "cancelled"
             await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage({ action: "deleteRecurringEventInstance", instanceId: eventId }, (response) => {
-                    console.log("Deleting recurring event instance:", eventId);
                     if (response.error) {
                         console.error("Error deleting recurring event instance:", response.error);
                         reject(response.error);
@@ -388,7 +387,6 @@ async function deleteEvent(eventId) {
             // If the event is not a recurring event, delete the event itself
             await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
-                    console.log("Deleting non-recurring event:", eventId);
                     if (response.error) {
                         console.error("Error deleting event:", response.error);
                         reject(response.error);
