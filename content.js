@@ -1,5 +1,3 @@
-let selectedCalendarId = "";
-let isExtensionActive = false;
 let listenersAdded = false;
 let selectedEvents = [];
 let initialEventTimes = {};
@@ -7,20 +5,11 @@ let observer = null;
 
 // Note: Refresh the GCal tab (if it's already open) after reloading the extension to avoid "Error: Extension context invalidated"
 
-chrome.storage.sync.get("selectedCalendarId", (data) => {
-    if (data.selectedCalendarId) {
-        selectedCalendarId = data.selectedCalendarId;
-    }
-});
-
 // Add event listeners if the extension is already active when the page loads
 chrome.storage.sync.get("isExtensionActive", (data) => {
     if (data.isExtensionActive) {
-        isExtensionActive = data.isExtensionActive;
-        if (isExtensionActive) {
-            addEventListeners();
-            observeDOMChanges();
-        }
+        addEventListeners();
+        observeDOMChanges();
     }
 });
 
@@ -37,7 +26,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "updateSelectedCalendarId") {
         const deselectPromises = selectedEvents.map(({ element }) => toggleSelection(element));
         Promise.all(deselectPromises).then(() => {
-            selectedCalendarId = request.newSelectedCalendarId;
+            const selectedCalendarId = request.newSelectedCalendarId;
             chrome.runtime.sendMessage({ action: "deselectedAllEvents", selectedCalendarId });
         }).catch(error => {
             console.error("Error deselecting events:", error);
@@ -108,33 +97,36 @@ function handleMouseDown(e) {
             const latestSelectedEvent = sortedInitialEventTimesArray[sortedInitialEventTimesArray.length - 1];
             const latestSelectedEventStartTime = latestSelectedEvent[1].start.toISOString();
 
-            const eventId = fetchEventId(eventElement);
-            fetchEventDetails(eventId).then(event => {
-                const eventElementStartTime = new Date(event.start.dateTime).toISOString();
-
-                getEventsList(latestSelectedEventStartTime, eventElementStartTime).then(events => {
-                    const elements = document.querySelectorAll("[jslog]");
-
-                    events.forEach(event => {                            
-                        let eventElement = null;
-                        for (const element of elements) {
-                            const jslog = element.getAttribute("jslog");
-                            if (jslog && jslog.includes(event.id)) {
-                                eventElement = element;
+            fetchEventId(eventElement).then(eventId => {
+                fetchEventDetails(eventId).then(event => {
+                    const eventElementStartTime = new Date(event.start.dateTime).toISOString();
+    
+                    getEventsList(latestSelectedEventStartTime, eventElementStartTime).then(events => {
+                        const elements = document.querySelectorAll("[jslog]");
+    
+                        events.forEach(event => {                            
+                            let eventElement = null;
+                            for (const element of elements) {
+                                const jslog = element.getAttribute("jslog");
+                                if (jslog && jslog.includes(event.id)) {
+                                    eventElement = element;
+                                }
                             }
-                        }
-                        if (eventElement) {
-                            const alreadySelected = selectedEvents.some(selectedEvent => selectedEvent.id === event.id);
-                            if (!alreadySelected) {
-                                toggleSelection(eventElement);
+                            if (eventElement) {
+                                const alreadySelected = selectedEvents.some(selectedEvent => selectedEvent.id === event.id);
+                                if (!alreadySelected) {
+                                    toggleSelection(eventElement);
+                                }
                             }
-                        }
+                        });
+                    }).catch(error => {
+                        console.error("Error fetching events list:", error);
                     });
                 }).catch(error => {
-                    console.error("Error fetching events list:", error);
+                    console.error("Error fetching event details:", error);
                 });
             }).catch(error => {
-                console.error("Error fetching event details:", error);
+                console.error("Error fetching event ID:", error);
             });
         }
     }
@@ -234,7 +226,7 @@ function getEventsList(timeMin, timeMax) {
     });
 }
 
-function fetchEventId(element) {
+async function fetchEventId(element) {
     /* Note: This is how to get the event ID from the element! 
     Not the data-eventid attribute, which I was misled by :( 
     The data-eventid attribute is not the event ID, it's from the event's htmlLink */
@@ -251,8 +243,23 @@ function fetchEventId(element) {
         console.error("No calendar ID found on the element.");
         return 1;
     }
+
+    let selectedCalendarId = null;
+    try {
+        selectedCalendarId = await new Promise((resolve, reject) => {
+            chrome.storage.sync.get("selectedCalendarId", (data) => {
+                if (chrome.runtime.lastError) {
+                    return reject(chrome.runtime.lastError);
+                }
+                resolve(data.selectedCalendarId);
+            });
+        });
+    } catch (error) {
+        console.error("Error getting selected calendar ID:", error);
+        return 1;
+    }
     if (selectedEventCalendarId !== selectedCalendarId) {
-        console.log("Selected event does not belong to the correct calendar.");
+        console.log("Selected event does not belong to the correct calendar. selectedEventCalendarId:", selectedEventCalendarId, "selectedCalendarId", selectedCalendarId);
         return 1;
     }
 
@@ -281,33 +288,37 @@ function fetchEventDetails(eventId) {
 
 function toggleSelection(element) {
     return new Promise((resolve, reject) => {
-        let eventId = fetchEventId(element);
-        if (eventId === 1) {
-            resolve();
-            return;
-        };
-        fetchEventDetails(eventId).then(event => {
-            if (!event.start.dateTime) {
-                console.log("All-day event detected. Ignoring selection.");
+        fetchEventId(element).then(eventId => {
+            if (eventId === 1) {
                 resolve();
                 return;
-            }
-            const index = selectedEvents.findIndex(event => event.id === eventId);
-            if (index === -1) {
-                selectedEvents.push({ id: eventId, element });
-                element.style.border = "2px solid black";
-                initialEventTimes[eventId] = {
-                    start: new Date(event.start.dateTime),
-                    end: new Date(event.end.dateTime),
-                };
-            } else {
-                selectedEvents.splice(index, 1);
-                element.style.border = "";
-                delete initialEventTimes[eventId];
-            }
-            resolve();    
+            };
+            fetchEventDetails(eventId).then(event => {
+                if (!event.start.dateTime) {
+                    console.log("All-day event detected. Ignoring selection.");
+                    resolve();
+                    return;
+                }
+                const index = selectedEvents.findIndex(event => event.id === eventId);
+                if (index === -1) {
+                    selectedEvents.push({ id: eventId, element });
+                    element.style.border = "2px solid black";
+                    initialEventTimes[eventId] = {
+                        start: new Date(event.start.dateTime),
+                        end: new Date(event.end.dateTime),
+                    };
+                } else {
+                    selectedEvents.splice(index, 1);
+                    element.style.border = "";
+                    delete initialEventTimes[eventId];
+                }
+                resolve();    
+            }).catch(error => {
+                console.error("Error fetching event details:", error);
+                reject(error);
+            });
         }).catch(error => {
-            console.error("Error fetching event details:", error);
+            console.error("Error fetching event ID:", error);
             reject(error);
         });
     });

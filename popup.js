@@ -44,9 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
     selectCalendarSelect.addEventListener("change", () => {
         const selectedCalendarId = selectCalendarSelect.value;
         console.log("selectedCalendarId:", selectedCalendarId);
-        chrome.storage.sync.set({ selectedCalendarId }, () => {
-            chrome.runtime.sendMessage({ action: "selectedCalendarChanged", selectedCalendarId });
-        });
+        chrome.runtime.sendMessage({ action: "selectedCalendarChanged", selectedCalendarId });
+        // chrome.storage.sync.set({ selectedCalendarId }, () => {
+        //     chrome.runtime.sendMessage({ action: "selectedCalendarChanged", selectedCalendarId });
+        // });
     });
 
     removeCalendarButton.addEventListener("click", () => {

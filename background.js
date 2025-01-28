@@ -1,5 +1,3 @@
-let selectedCalendarId = "";
-let isExtensionActive = false;
 let authToken = null;
 let previousCalendarUrl = {};
 
@@ -7,16 +5,16 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.action.setIcon({ path: "/images/icon-16-off.png" });
     chrome.storage.sync.set({ isExtensionActive: false });
     chrome.storage.sync.get("selectedCalendarId", (data) => {
-        selectedCalendarId = data.selectedCalendarId || "";
+        chrome.storage.sync.set({ selectedCalendarId: data.selectedCalendarId || "" });
     });
 });
 
 chrome.runtime.onStartup.addListener(() => {
     chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
-        isExtensionActive = data.isExtensionActive || false;
-        let iconPath = isExtensionActive ? "/images/icon-16.png" : "/images/icon-16-off.png";
+        chrome.storage.sync.set({ isExtensionActive: data.isExtensionActive || false });
+        let iconPath = data.isExtensionActive ? "/images/icon-16.png" : "/images/icon-16-off.png";
         chrome.action.setIcon({ path: iconPath });
-        selectedCalendarId = data.selectedCalendarId || "";
+        chrome.storage.sync.set({ selectedCalendarId: data.selectedCalendarId || "" });
     });
 });
 
@@ -47,17 +45,17 @@ function checkAndInjectContentScript(tabId) {
 // When page is reloaded
 chrome.webNavigation.onCommitted.addListener(() => {
     chrome.storage.sync.get(["isExtensionActive", "selectedCalendarId"], (data) => {
-        if (isExtensionActive) {
+        if (data.isExtensionActive) {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 if (tabs[0].id) {
                     let promise = checkAndInjectContentScript(tabs[0].id);
                     promise.then(
-                        chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive })
+                        chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: data.isExtensionActive })
                     )
                 }
             });
         }
-        selectedCalendarId = data.selectedCalendarId || "";
+        chrome.storage.sync.set({ selectedCalendarId: data.selectedCalendarId || "" });
     });
 }, {
     url: [{ hostContains: "calendar.google.com/calendar" }]
@@ -103,14 +101,13 @@ function getAuthToken() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     if (request.action === "toggleExtensionState") {
-        isExtensionActive = request.active;
-        let iconPath = isExtensionActive ? "/images/icon-16.png" : "/images/icon-16-off.png";
+        let iconPath = request.active ? "/images/icon-16.png" : "/images/icon-16-off.png";
         chrome.action.setIcon({ path: iconPath });
-        chrome.storage.sync.set({ isExtensionActive });
+        chrome.storage.sync.set({ isExtensionActive: request.active });
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0].url.includes("calendar.google.com")) {
+            if (tabs[0] && tabs[0].url && tabs[0].url.includes("calendar.google.com")) {
                 checkAndInjectContentScript(tabs[0].id).then(() => {
-                    chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: isExtensionActive });
+                    chrome.tabs.sendMessage(tabs[0].id, { action: "toggleExtensionState", active: request.active });
                 });
             }
         });
@@ -118,47 +115,55 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "selectedCalendarChanged") {
         const newSelectedCalendarId = request.selectedCalendarId;
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0].url.includes("calendar.google.com")) {
-                chrome.tabs.sendMessage(tabs[0].id, { action: "updateSelectedCalendarId", newSelectedCalendarId });
-            }
+        chrome.tabs.query({}, (tabs) => {
+            tabs.forEach((tab) => {
+                if (tab.url && tab.url.includes("calendar.google.com")) {
+                    chrome.tabs.sendMessage(tab.id, { action: "updateSelectedCalendarId", newSelectedCalendarId });
+                }
+            });
         });
         return true;
     }
 
     if (request.action === "deselectedAllEvents") {
-        selectedCalendarId = request.selectedCalendarId;
+        console.log("Deselected all events.");
+        chrome.storage.sync.set({ selectedCalendarId: request.selectedCalendarId }, () => {
+            chrome.storage.sync.get("selectedCalendarId", (data) => {
+                console.log("Selected calendar ID:", data.selectedCalendarId);
+            });
+        });
         return true;
     }
 
     if (request.action === "getEventsList") {
         const { timeMin, timeMax } = request;
         getAuthToken().then((token) => {
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
-            fetch(url, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(error => {
-                        console.error("Error response from API:", error);
-                        throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                sendResponse({ events: data.items });
-            })
-            .catch(error => {
-                console.error("Error fetching events:", error);
-                sendResponse({ error: error.toString() });
+            chrome.storage.sync.get("selectedCalendarId", (data) => {
+                const url = `https://www.googleapis.com/calendar/v3/calendars/${data.selectedCalendarId}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
+                fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(error => {
+                            console.error("Error response from API:", error);
+                            throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    sendResponse({ events: data.items });
+                })
+                .catch(error => {
+                    console.error("Error fetching events:", error);
+                    sendResponse({ error: error.toString() });
+                });
             });
-            return true;
         })
         .catch(error => {
             console.error("Error getting auth token:", error);
@@ -170,31 +175,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "getEventDetails") {
         const eventId = request.eventId;
         getAuthToken().then((token) => {
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
-            fetch(url, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(error => {
-                        console.error("Error response from API:", error);
-                        throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(event => {
-                sendResponse({ event });
-            })
-            .catch(error => {
-                console.error("Error fetching event details:", error);
-                sendResponse({ error: error.toString() });
+            chrome.storage.sync.get("selectedCalendarId", (data) => {
+                const url = `https://www.googleapis.com/calendar/v3/calendars/${data.selectedCalendarId}/events/${eventId}`;
+                fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(error => {
+                            console.error("Error response from API:", error);
+                            throw new Error(`HTTP error! status: ${response.status}, message: ${error.message}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(event => {
+                    sendResponse({ event });
+                })
+                .catch(error => {
+                    console.error("Error fetching event details:", error);
+                    sendResponse({ error: error.toString() });
+                });
             });
-            return true;
         })
         .catch(error => {
             console.error("Error getting auth token:", error);
@@ -238,6 +244,7 @@ async function updateEventApiCall(request) {
     const { eventId, newStartTime, newEndTime } = request;
     try {
         const token = await getAuthToken();
+        const selectedCalendarId = await chrome.storage.sync.get("selectedCalendarId");
         const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
         const eventPatch = {
             start: {
@@ -289,6 +296,7 @@ function handleDeleteEvent(request, sendResponse) {
 async function deleteEventApiCall(eventId) {
     try {
         const token = await getAuthToken();
+        const selectedCalendarId = await chrome.storage.sync.get("selectedCalendarId");
         const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
         const response = await fetch(url, {
             method: "DELETE",
@@ -331,7 +339,8 @@ function handleDeleteRecurringEventInstance(request, sendResponse) {
 async function deleteRecurringEventInstanceApiCall(instanceId) {
     try {
         const token = await getAuthToken();
-        const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${instanceId}`;
+        const selectedCalendarId = await chrome.storage.sync.get("selectedCalendarId");
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${data.selectedCalendarId}/events/${instanceId}`;
         const eventPatch = {
             status: "cancelled"
         };
