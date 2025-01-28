@@ -244,7 +244,14 @@ async function updateEventApiCall(request) {
     const { eventId, newStartTime, newEndTime } = request;
     try {
         const token = await getAuthToken();
-        const selectedCalendarId = await chrome.storage.sync.get("selectedCalendarId");
+        const selectedCalendarId = await new Promise((resolve, reject) => {
+            chrome.storage.sync.get("selectedCalendarId", (data) => {
+                if (chrome.runtime.lastError) {
+                    return reject(chrome.runtime.lastError);
+                }
+                resolve(data.selectedCalendarId);
+            });
+        });
         const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
         const eventPatch = {
             start: {
@@ -296,7 +303,14 @@ function handleDeleteEvent(request, sendResponse) {
 async function deleteEventApiCall(eventId) {
     try {
         const token = await getAuthToken();
-        const selectedCalendarId = await chrome.storage.sync.get("selectedCalendarId");
+        const selectedCalendarId = await new Promise((resolve, reject) => {
+            chrome.storage.sync.get("selectedCalendarId", (data) => {
+                if (chrome.runtime.lastError) {
+                    return reject(chrome.runtime.lastError);
+                }
+                resolve(data.selectedCalendarId);
+            });
+        });
         const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`;
         const response = await fetch(url, {
             method: "DELETE",
@@ -339,8 +353,15 @@ function handleDeleteRecurringEventInstance(request, sendResponse) {
 async function deleteRecurringEventInstanceApiCall(instanceId) {
     try {
         const token = await getAuthToken();
-        const selectedCalendarId = await chrome.storage.sync.get("selectedCalendarId");
-        const url = `https://www.googleapis.com/calendar/v3/calendars/${data.selectedCalendarId}/events/${instanceId}`;
+        const selectedCalendarId = await new Promise((resolve, reject) => {
+            chrome.storage.sync.get("selectedCalendarId", (data) => {
+                if (chrome.runtime.lastError) {
+                    return reject(chrome.runtime.lastError);
+                }
+                resolve(data.selectedCalendarId);
+            });
+        });
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${instanceId}`;
         const eventPatch = {
             status: "cancelled"
         };

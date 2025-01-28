@@ -197,13 +197,15 @@ function handleKeyDown(e) {
                 }
             });
         } else if (e.key === "Delete") {
-            alert("Deleting selected events. This may take a moment. Please wait for an alert confirming completion before refreshing the page.");
-            const deletePromises = selectedEvents.map(({ id }) => deleteEvent(id));
-            Promise.all(deletePromises).then(() => {
-                alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
-            }).catch(error => {
-                console.error("Error deleting events:", error);
-            });
+            deleteKeyPressed();
+            // alert("Deleting selected events. This may take a moment. Please wait for an alert confirming completion before refreshing the page.");
+            
+            // const deletePromises = selectedEvents.map(({ id }) => deleteEvent(id));
+            // Promise.all(deletePromises).then(() => {
+            //     alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
+            // }).catch(error => {
+            //     console.error("Error deleting events:", error);
+            // });
         }
     });
 }
@@ -354,12 +356,25 @@ function updateEvent(eventId, newStartTime, newEndTime, retries = 0) {
     });
 }
 
-function deleteEvent(eventId) {
-    return fetchEventDetails(eventId).then(event => {
+async function deleteKeyPressed() {
+    alert("Deleting selected events. This may take a moment. Please wait for an alert confirming completion before refreshing the page.");
+    try {
+        const deletePromises = selectedEvents.map(({ id }) => deleteEvent(id));
+        await Promise.all(deletePromises);
+        alert("Events have been deleted successfully. Please wait a moment or refresh the page to see the changes reflected in the calendar.");
+    } catch (error) {
+        console.error("Error deleting events:", error);
+    }
+}
+
+async function deleteEvent(eventId) {
+    try {
+        const event = await fetchEventDetails(eventId);
         if (event.recurringEventId) {
             // If the event is a recurring event, change the status of the instance to "cancelled"
-            return new Promise((resolve, reject) => {
+            await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage({ action: "deleteRecurringEventInstance", instanceId: eventId }, (response) => {
+                    console.log("Deleting recurring event instance:", eventId);
                     if (response.error) {
                         console.error("Error deleting recurring event instance:", response.error);
                         reject(response.error);
@@ -371,8 +386,9 @@ function deleteEvent(eventId) {
             });
         } else {
             // If the event is not a recurring event, delete the event itself
-            return new Promise((resolve, reject) => {
+            await new Promise((resolve, reject) => {
                 chrome.runtime.sendMessage({ action: "deleteEvent", eventId }, (response) => {
+                    console.log("Deleting non-recurring event:", eventId);
                     if (response.error) {
                         console.error("Error deleting event:", response.error);
                         reject(response.error);
@@ -383,10 +399,10 @@ function deleteEvent(eventId) {
                 });
             });
         }
-    }).catch(error => {
-        console.error("Error fetching event details:", error);
+    } catch (error) {
+        console.error("Error deleting event:", error);
         throw error;
-    });
+    }
 }
 
 function removeEventFromSelectedEvents(eventId) {
