@@ -4,7 +4,6 @@
     "version": "0.0.0.1",
     "description": "Select and bulk move/delete multiple Google Calendar events.",
     "permissions": [
-        "activeTab", 
         "identity", 
         "scripting",
         "storage",
