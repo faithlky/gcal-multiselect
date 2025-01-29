@@ -98,7 +98,7 @@ function handleMouseDown(e) {
     
                 const latestSelectedEvent = sortedInitialEventTimesArray[sortedInitialEventTimesArray.length - 1];
                 const latestSelectedEventStartTime = latestSelectedEvent[1].start.toISOString();
-    
+                
                 fetchEventId(eventElement).then(eventId => {
                     fetchEventDetails(eventId).then(event => {
                         const eventElementStartTime = new Date(event.start.dateTime).toISOString();
@@ -107,17 +107,17 @@ function handleMouseDown(e) {
                             const elements = document.querySelectorAll("[jslog]");
         
                             events.forEach(event => {                            
-                                let eventElement = null;
+                                let eventElementInList = null;
                                 for (const element of elements) {
                                     const jslog = element.getAttribute("jslog");
                                     if (jslog && jslog.includes(event.id)) {
-                                        eventElement = element;
+                                        eventElementInList = element;
                                     }
                                 }
-                                if (eventElement) {
+                                if (eventElementInList) {
                                     const alreadySelected = selectedEvents.some(selectedEvent => selectedEvent.id === event.id);
                                     if (!alreadySelected) {
-                                        toggleSelection(eventElement);
+                                        toggleSelection(eventElementInList);
                                     }
                                 }
                             });
