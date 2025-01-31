@@ -18,15 +18,33 @@ This extension saves a lot of time because you can select multiple events and mo
 ## How to set up and use this:
 1. ~~Download the gcal-multiselect folder and its contents on your computer. Go to chrome://extensions/ in Google Chrome and turn on Developer Mode at the top right. Click Load Unpacked and select the gcal-multiselect folder.~~ Install the extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/google-calendar-event-mul/eocpakpdohecpcnfjmgohbkkcdeedhfo), yay!
 2. Go to calendar.google.com and click the extension icon to open the popup.
-3. _Add and select your calendar in the extension popup:_ The calendar ID for your primary calendar (the one titled your name) is just your gmail address. If you are using a different calendar, you can find its calendar ID in the calendar settings.
-4. _Select the events to move or delete:_ CTRL/⌘ + CLICK to select individual (non "All day") events. If you have a block of back-to-back events you'd like to move, select the first event in the block, then SHIFT + CLICK the last event to select all the events in between as well.
+3. **Add and select your calendar in the extension popup:** The calendar ID for your primary calendar (the one titled your name) is just your gmail address. If you are using a different calendar, you can find its calendar ID in the calendar settings.
+4. **Select the events to move or delete:** `CTRL/⌘ + CLICK` to select individual (non "All day") events. If you have a block of back-to-back events you'd like to move, select the first event in the block, then `SHIFT + CLICK` the last event to select all the events in between as well.
 5.  
-    * _Move the events:_ Move one of the selected events, then press **CTRL/⌘ + ENTER** to move the rest.
-    * _Delete the events:_ Just press **DEL** to delete all the selected events.
+    * **Move the events:** Move one of the selected events, then press **`CTRL/⌘ + ENTER`** to move the rest.
+    * **Delete the events:** Just press **`DEL`** to delete all the selected events.
 
 (Please be patient, it takes a while for the selection borders and event changes to appear.)
 
-### If you want to make your own version of this:
+<details>
+<summary>NOTE: The first time you select an event, a Google consent screen will appear for you to give the extension permission to access and edit your calendar events.</summary>
+
+![Screenshot of Google consent screen](images/OAuth%20screen%201%20-%20choose%20account.png)
+
+After choosing your account, you will see this warning, which is here because the extension makes use of the Google Calendar API's ".../auth/calendar.events" scope (permission to view and edit events on all your calendars). This is categorised as a sensitive scope as it grants access to private Google User Data, so I need to submit the extension for [verification](https://support.google.com/cloud/answer/13463073?sjid=13385238972695476127-NC) by Google. However, in order to get it verified, I need to submit a bunch of stuff, including an app homepage and privacy policy hosted on a domain I own, which I don't have... yet? 
+
+So for now, just click "Advanced" at the bottom, then click "Go to Google Calendar Event Multiselect (unsafe)".
+
+![Screenshot of warning saying "Google hasn't verified this app" with a link at the bottom saying "Advanced"](images/OAuth%20screen%202%20-%20click%20Advanced.png)
+
+![Screenshot of warning saying "Google hasn't verified this app" with a link at the bottom saying "Go to Google Calendar Event Multiselect (unsafe)"](images/OAuth%20screen%203%20-%20click%20Go%20to.png)
+
+Now click "Continue" :-)
+
+![Screenshot of consent screen with "Continue" button"](images/OAuth%20screen%204%20-%20click%20Continue.png)
+</details>
+
+### If you want to make your own version of this extension:
 1. Delete the .crx and .pem files in the directory. Refer to https://stackoverflow.com/a/21500707 to generate new ones. In summary:
     * In Developer Mode on chrome://extensions/, click Pack Extension, select the extension's directory, leave the Private Key File field blank, and then Pack Extension. There should now be a new .crx file and a new .pem file in the directory.
     * Go to https://robwu.nl/crxviewer/, choose the .crx file, then Inspect to open the console. The public key is for step 6 and the extension ID is for step 5.
