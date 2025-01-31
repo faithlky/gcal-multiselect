@@ -27,7 +27,7 @@ This extension saves a lot of time because you can select multiple events and mo
 (Please be patient, it takes a while for the selection borders and event changes to appear.)
 
 <details>
-<summary>NOTE: The first time you select an event, a Google consent screen will appear for you to give the extension permission to access and edit your calendar events.</summary>
+<summary>NOTE: The first time you select an event, a Google consent screen will appear for you to give the extension permission to access and edit your calendar events. Expand this for more info.</summary>
 
 ![Screenshot of Google consent screen](images/OAuth%20screen%201%20-%20choose%20account.png)
 
@@ -41,7 +41,7 @@ So for now, just click "Advanced" at the bottom, then click "Go to Google Calend
 
 Now click "Continue" :-)
 
-![Screenshot of consent screen with "Continue" button"](images/OAuth%20screen%204%20-%20click%20Continue.png)
+![Screenshot of consent screen with "Continue" button](images/OAuth%20screen%204%20-%20click%20Continue.png)
 </details>
 
 ### If you want to make your own version of this extension:
