@@ -29,19 +29,19 @@ This extension saves a lot of time because you can select multiple events and mo
 <details>
 <summary>NOTE: The first time you select an event, a Google consent screen will appear for you to give the extension permission to access and edit your calendar events. Expand this for more info.</summary>
 
-![Screenshot of Google consent screen](images/OAuth%20screen%201%20-%20choose%20account.png)
-
-After choosing your account, you will see this warning, which is here because the extension makes use of the Google Calendar API's ".../auth/calendar.events" scope (permission to view and edit events on all your calendars). This is categorised as a sensitive scope as it grants access to private Google User Data, so I need to submit the extension for [verification](https://support.google.com/cloud/answer/13463073?sjid=13385238972695476127-NC) by Google. However, in order to get it verified, I need to submit a bunch of stuff, including an app homepage and privacy policy hosted on a domain I own, which I don't have... yet? 
-
-So for now, just click "Advanced" at the bottom, then click "Go to Google Calendar Event Multiselect (unsafe)".
-
-![Screenshot of warning saying "Google hasn't verified this app" with a link at the bottom saying "Advanced"](images/OAuth%20screen%202%20-%20click%20Advanced.png)
-
-![Screenshot of warning saying "Google hasn't verified this app" with a link at the bottom saying "Go to Google Calendar Event Multiselect (unsafe)"](images/OAuth%20screen%203%20-%20click%20Go%20to.png)
-
-Now click "Continue" :-)
-
-![Screenshot of consent screen with "Continue" button](images/OAuth%20screen%204%20-%20click%20Continue.png)
+> ![Screenshot of Google consent screen](images/OAuth%20screen%201%20-%20choose%20account.png)
+>
+> After choosing your account, you will see this warning, which is here because the extension makes use of the Google Calendar API's ".../auth/calendar.events" scope (permission to view and edit events on all your calendars). This is categorised as a sensitive scope as it grants access to private Google User Data, so I need to submit the extension for [verification](https://support.google.com/cloud/answer/13463073?sjid=13385238972695476127-NC) by Google. However, in order to get it verified, I need to submit a bunch of stuff, including an app homepage and privacy policy hosted on a domain I own, which I don't have... yet? 
+>
+> So for now, just click "Advanced" at the bottom, then click "Go to Google Calendar Event Multiselect (unsafe)".
+>
+> ![Screenshot of warning saying "Google hasn't verified this app" with a link at the bottom saying "Advanced"](images/OAuth%20screen%202%20-%20click%20Advanced.png)
+>
+> ![Screenshot of warning saying "Google hasn't verified this app" with a link at the bottom saying "Go to Google Calendar Event Multiselect (unsafe)"](images/OAuth%20screen%203%20-%20click%20Go%20to.png)
+>
+> Now click "Continue" :-)
+>
+> ![Screenshot of consent screen with "Continue" button](images/OAuth%20screen%204%20-%20click%20Continue.png)
 </details>
 
 ### If you want to make your own version of this extension:
