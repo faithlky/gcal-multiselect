@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Calendar Event Multiselect | Home</title>
+    <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+    <link rel="stylesheet" href="gcal-multiselect-styles.css">
+</head>
+<body>
+<div class="main-container">
+    <div class="top-section">
+        <div class="title">
+            <img src="../images/icon-128-black.png" style="height: 4rem; width: 4rem">
+            <h1>Google Calendar Event Multiselect</h1>
+        </div>
+        <p>Github: <a href="https://github.com/faithlky/gcal-multiselect" target="_blank">https://github.com/faithlky/gcal-multiselect</a></p>
+        <a id="install-link" href="https://chromewebstore.google.com/detail/google-calendar-event-mul/eocpakpdohecpcnfjmgohbkkcdeedhfo" target="_blank">Install it from the Chrome Web Store!</a>
+        <br>
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/FStZ2e6FwVU?si=cIw6VZqIz02MtZmo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </div>
+    <p>Hello! This webpage exists because I'm trying to get the extension verified for OAuth, and an app homepage is <a href="https://support.google.com/cloud/answer/13464321?sjid=13385238972695476127-NC" target="_blank">required</a>. 😅</p>
+    <h2>Extension Objective:</h2>
+    <p>This was my first shipped project ever, yay! I made it for people who use Google Calendar for time boxing.</p>
+    <p>I usually have my whole schedule for the day planned out, but when some delay happens (whoops), I&#39;d need to shift all the rest of the day&#39;s events backwards. Adjusting each event&#39;s timing individually is very tedious to do if there are many events to move.</p>
+    <p>I also have recurring events in my daily schedule, but if I want to break from the schedule for a day, I&#39;d need to delete all the scheduled events one by one.</p>
+    <p>This extension saves a lot of time because you can select multiple events and move/delete them all at once!</p>
+    <p><img src="../images/popup-screenshot.png" alt="Screenshot of extension popup"></p>
+    <h2>How to set up and use this:</h2>
+    <ol>
+        <li>Install the extension from the <a href="https://chromewebstore.google.com/detail/google-calendar-event-mul/eocpakpdohecpcnfjmgohbkkcdeedhfo" target="_blank">Chrome Web Store</a>.</li>
+        <li>Go to calendar.google.com and click the extension icon to open the popup.</li>
+        <li><strong>Add and select your calendar in the extension popup:</strong> The calendar ID for your primary calendar (the one titled your name) is just your gmail address. If you are using a different calendar, you can find its calendar ID in the calendar settings.</li>
+        <li><strong>Select the events to move or delete:</strong> <code>CTRL/⌘ + CLICK</code> to select individual (non &quot;All day&quot;) events. If you have a block of back-to-back events you&#39;d like to move, select the first event in the block, then <code>SHIFT + CLICK</code> the last event to select all the events in between as well.</li>
+        <li><ul>
+            <li><strong>Move the events:</strong> Move one of the selected events, then press <strong><code>CTRL/⌘ + ENTER</code></strong> to move the rest.</li>
+            <li><strong>Delete the events:</strong> Just press <strong><code>DEL</code></strong> to delete all the selected events.</li>
+        </ul>
+        </li>
+    </ol>
+    <p>(Please be patient, it takes a while for the selection borders and event changes to appear.)</p>
+    <details>
+        <summary>NOTE: The first time you select an event, a Google consent screen will appear for you to give the extension permission to access and edit your calendar events. Expand this for more info.</summary>
+        <br>
+        <img src="../images/OAuth%20screen%201%20-%20choose%20account.png" alt="Screenshot of Google consent screen">
+        <p>After choosing your account, you will see this warning, which is here because the extension makes use of the Google Calendar API&#39;s &quot;.../auth/calendar.events&quot; scope (permission to view and edit events on all your calendars). This is categorised as a sensitive scope as it grants access to private Google User Data, so I need to submit the extension for <a href="https://support.google.com/cloud/answer/13463073?sjid=13385238972695476127-NC" target="_blank">verification</a> by Google. I'm still trying to get it verified; please 🐻 with me!</p>
+        <p>So for now, just click &quot;Advanced&quot; at the bottom, then click &quot;Go to Google Calendar Event Multiselect (unsafe)&quot;.</p>
+        <img src="../images/OAuth%20screen%202%20-%20click%20Advanced.png" alt="Screenshot of warning saying &quot;Google hasn&#39;t verified this app&quot; with a link at the bottom saying &quot;Advanced&quot;">
+        <img src="../images/OAuth%20screen%203%20-%20click%20Go%20to.png" alt="Screenshot of warning saying &quot;Google hasn&#39;t verified this app&quot; with a link at the bottom saying &quot;Go to Google Calendar Event Multiselect (unsafe)&quot;">
+        <p>Now click &quot;Continue&quot; :-)</p>
+        <img src="../images/OAuth%20screen%204%20-%20click%20Continue.png" alt="Screenshot of consent screen with &quot;Continue&quot; button">
+    </details>
+    <h3>If you want to make your own version of this extension:</h3>
+    <ol>
+        <li>Go to <a href="https://github.com/faithlky/gcal-multiselect" target="_blank">https://github.com/faithlky/gcal-multiselect</a> and download the gcal-multiselect folder and its contents on your computer. Go to chrome://extensions/ in Google Chrome and turn on Developer Mode at the top right. Click Load Unpacked and select the gcal-multiselect folder.</li>
+        <li>Delete the .crx and .pem files in the directory. Refer to <a href="https://stackoverflow.com/a/21500707" target="_blank">https://stackoverflow.com/a/21500707</a> to generate new ones. In summary:
+            <ul>
+                <li>In Developer Mode on chrome://extensions/, click Pack Extension, select the extension&#39;s directory, leave the Private Key File field blank, and then Pack Extension. There should now be a new .crx file and a new .pem file in the directory.</li>
+                <li>Go to <a href="https://robwu.nl/crxviewer/" target="_blank">https://robwu.nl/crxviewer/</a>, choose the .crx file, then Inspect to open the console. The public key is for step 6 and the extension ID is for step 5.</li>
+            </ul>
+        </li>
+        <li>Go to console.cloud.google.com &gt; Create a new project</li>
+        <li>&quot;APIs &amp; Services&quot; &gt; &quot;Enabled APIs &amp; Services&quot; &gt; Enable Google Calendar API</li>
+        <li>&quot;OAuth Consent Screen&quot; &gt; &quot;External&quot; &gt; &quot;Create&quot; &gt; Fill in the required information &gt; Add the scope .../auth/calendar.events &gt; Add your test users</li>
+        <li>&quot;Credientials&quot; &gt; &quot;Create Credentials&quot; &gt; &quot;OAuth client ID&quot; &gt; Application type: Chrome Extension; Item ID: (copy the extension ID from the CRX Viewer) &gt; Copy the client ID</li>
+        <li>Replace &quot;client_id&quot; and &quot;key&quot; in manifest.json with your own client ID (from step 5) and public key (from step 1) respectively.</li>
+    </ol>
+    <h2>Future improvements (maybe):</h2>
+    <ul>
+        <li>⭐ Support GCal in dark theme (since the borders that appear on selected events are currently black)</li>
+        <li>Fetch the calendar name from its ID, rather than requiring user input</li>
+        <li>It would be really nice if all the selected events would just shift together once one is shifted, without having to press Ctrl+Enter, but unfortunately, it seems like Google Calendar does something when events are dragged &amp; dropped which prevents the dropping of events from registering as mouseups. I&#39;d like to try and find an alternative solution if possible.</li>
+        <li>Everything is kind of very slow... 🐌... Gotta try and fix that, though I&#39;m not sure how I might approach this problem, since some of the lagginess might be due to the way Google Calendar updates the page.</li>
+    </ul>
+    <br>
+    <footer>
+        <hr>
+        <p><a href="https://faithlky.xyz/gcal-multiselect/privacy-policy.html">Privacy Policy</a></p>
+    </footer>
+</div>
+</body>
+</html>
