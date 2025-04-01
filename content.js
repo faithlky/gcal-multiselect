@@ -196,7 +196,7 @@ function handleKeyDown(e) {
                     return;
                 }
             });
-        } else if (e.key === "Delete") {
+        } else if (e.key === "Delete" && (e.ctrlKey || e.metaKey)) {
             deleteKeyPressed();
             // alert("Deleting selected events. This may take a moment. Please wait for an alert confirming completion before refreshing the page.");
             

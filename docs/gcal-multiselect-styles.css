@@ -4,8 +4,13 @@ body {
     font-family: "Be Vietnam Pro", sans-serif;
 }
 
-details {
+kbd {
     background-color: #fff5c4;
+    padding: 0 0.2rem;
+}
+
+details {
+    background-color: #ffe6c4;
     padding: 1rem;
     margin: 0 -1rem 0 -1rem;
 }

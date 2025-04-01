@@ -9,6 +9,12 @@ strong, h1, h4, h5 {
     font-weight: 700;
 }
 
+kbd {
+    background-color: white;
+    color: black;
+    padding: 0 0.2rem;
+}
+
 /* This doesn't work :( */
 select:invalid {
     color: #c1c0c0 !important;

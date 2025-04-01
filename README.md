@@ -22,7 +22,7 @@ This extension saves a lot of time because you can select multiple events and mo
 4. **Select the events to move or delete:** `CTRL/⌘ + CLICK` to select individual (non "All day") events. If you have a block of back-to-back events you'd like to move, select the first event in the block, then `SHIFT + CLICK` the last event to select all the events in between as well.
 5.  
     * **Move the events:** Move one of the selected events, then press **`CTRL/⌘ + ENTER`** to move the rest.
-    * **Delete the events:** Just press **`DEL`** to delete all the selected events.
+    * **Delete the events:** Press **`CTRL/⌘ + DEL`** to delete all the selected events.
 
 (Please be patient, it takes a while for the selection borders and event changes to appear.)
 
