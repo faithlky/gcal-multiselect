@@ -1,4 +1,4 @@
-# Google Calendar Event Multiselect
+# Event Multiselect for Google Calendar
 
 ## Demos:
 * [Chrome Web Store listing](https://chromewebstore.google.com/detail/google-calendar-event-mul/eocpakpdohecpcnfjmgohbkkcdeedhfo)
